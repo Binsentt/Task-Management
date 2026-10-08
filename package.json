@@ -1,0 +1,19 @@
+{
+  "name": "task-management-system",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "Task",
+    "server"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=Task",
+    "build": "npm run build --workspace=Task",
+    "preview": "npm run preview --workspace=Task",
+    "test": "npm run test --workspace=Task",
+    "dev:server": "npm run dev --workspace=server"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
