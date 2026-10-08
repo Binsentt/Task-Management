@@ -38,7 +38,7 @@ Preview the production build locally:
 npm run preview
 ```
 
-Run the frontend tests:
+Run the landing-page tests:
 
 ```bash
 npm test
@@ -68,7 +68,7 @@ implemented.
 ## Project layout
 
 ```text
-Task/     React + Vite frontend, landing page, and dashboard UI
+Task/     React + Vite frontend and landing page
 server/   Express backend scaffold
 ```
 
@@ -78,34 +78,3 @@ The frontend deployment root is `Task/`. In the Vercel project settings, set
 the Root Directory to `Task`, Framework Preset to Vite, Build Command to
 `npm run build`, and Output Directory to `dist`. The frontend also includes a
 `vercel.json` with the Vite build and output settings.
-
-## Dashboard integration
-
-`Task/src/pages/DashboardPage.jsx` provides the dashboard UI. Authentication,
-database access, and task CRUD remain the responsibility of the other developers.
-The landing page remains the default screen. `/dashboard` only renders the dashboard
-when `App` receives an `authenticatedUser` from the future verified session provider.
-Without that user, it renders the landing page. This UI boundary does not replace
-server-side authentication and API authorization.
-
-For a local design preview, run `npm run dev` and open
-`http://localhost:5173/?preview=dashboard`. This preview is available only in Vite
-development mode and is removed from production builds.
-
-The login developer can pass the verified session user and loaded data:
-
-```jsx
-<App
-  authenticatedUser={session.user}
-  dashboardProps={{ tasks, projects, summary, onNewTask, onNavigate }}
-/>
-```
-
-`DashboardPage` accepts `user` (`name`), `tasks` (`id`, `title`, `project`,
-`dueLabel`, `status`, `color`), `projects` (`id`, `name`, `color`), and `summary`
-(`total`, `completed`, `pending`, `projectCount`, `completedThisWeek`,
-`completedToday`, `onTrackPercent`). Colors support `indigo`, `blue`, and `emerald`.
-Missing data shows zero counts and an empty state rather than fabricated results.
-Search filters supplied task data locally. Actions are disabled until their
-callbacks are provided: `onNewTask`, `onNavigate`, `onNotifications`, `onProfile`,
-and `onTaskSelect`. `onNavigate` receives `tasks`, `calendar`, or `project:<id>`.
