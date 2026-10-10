@@ -1,5 +1,5 @@
 import express from 'express'
-import connectDatabase from './config/database.js';
+import connectDatabase from '../config/database.js';
 
 const app = express();
 const port = 8080;
