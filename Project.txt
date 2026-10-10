@@ -1,0 +1,82 @@
+TaskTrack - personal or group remote task tracker
+
+users - individual - manager - admin
+
+features
+-guest mode - 
+1.allows to create task, which has CRUD and checklist if complete(main feature) 
+2.saves in browser
+
+-individual mode - 
+x.extends guest mode, 
+1.saves data in account, can be added in an organization
+2.organization has admin and manager
+
+-organization
+1.contains tasks of org
+2.has history list of every tasks
+3.has list of every user connected to that org
+4.has time tracker for tasks, used for remote shifts, has time in/out feature
+
+-manager
+x.extends individual
+1.managers the organization
+2.can check the orgs to do list and time in/out of individuals
+
+
+-admin
+x.extends manager
+1.has super control of everything in the app
+
+Draft ERD
+
+1.user
+-id
+-username
+-email
+-passwordHash
+-organization?
+
+1.5 membership
+-id
+-user.id
+-organization.id?
+-role
+
+2.task
+-id
+-title
+-content
+-created_by
+-assigned_to?
+-organization.id?
+-status[to_do, inProgress, done]
+-completed_at
+
+2.5 checklist_items
+-id
+-task.id
+-text
+-isDone
+-order
+
+2.6 history_list
+-id
+-task.id
+-user.id
+-action
+-changes
+-timestamp
+
+
+3.organization
+-id
+-name
+-tasks[]
+
+4.remoteShift
+-id
+-user.id
+-organization.id
+-timeIn
+-timeOut
