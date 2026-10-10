@@ -1,9 +1,23 @@
-import 'dotenv/config'
 import express from 'express'
+import connectDatabase from './config/database.js';
 
-const app = express()
-const port = Number(process.env.PORT) || 5000
+const app = express();
+const port = 8080;
+
+app.use(express.json());
+
+connectDatabase();
+
+app.get('/', (req, res) => {
+  res.send(`port is running at ${port}`)
+});
 
 app.listen(port, () => {
-  console.log(`Express server listening on port ${port}`)
-})
+  console.log(`port running at ${port}`)
+});
+
+
+
+
+
+
