@@ -1,93 +1,168 @@
-import Task from './task.model';
-import createResponse from '../../utils/response';
+import Task from './task.model.js';
+import User from '../user/user.model.js';
+import createResponse from '../../utils/response.js';
+import { recordTaskCreated, recordTaskUpdate } from '../history/historyService.js';
 
+// Allowlists: only these fields can ever come from the client.
+// Everything else (created_by, organization, completed_at, deleted_at...) is set by the server.
+const CREATABLE = ['title', 'content', 'status', 'priority', 'deadline', 'checklist'];
+const EDITABLE = [...CREATABLE];
 
-async function getOneTask(id) {
+const pick = (obj = {}, allowed) =>
+    Object.fromEntries(Object.entries(obj).filter(([key]) => allowed.includes(key)));
+
+const isManager = (user) => ['MANAGER', 'ADMIN'].includes(user.org_role);
+
+// Tasks this user is allowed to see: their own personal tasks + their org's tasks
+const visibleTo = (user) => ({
+    deleted_at: null,
+    $or: [
+        { organization: null, created_by: user._id },
+        ...(user.organization ? [{ organization: user.organization }] : [])
+    ]
+});
+
+// Who may edit or delete: the creator, the assignee, or a manager/admin (org tasks only)
+const canModify = (user, task) => {
+    if (task.created_by.equals(user._id)) return true;
+    if (!task.organization) return false;
+    return Boolean(task.assigned_to?.equals(user._id)) || isManager(user);
+};
+
+// Returns an error message, or null when the assignment is allowed
+async function checkAssignment(user, organization, assignedTo) {
+    if (!organization) return 'Personal tasks cannot be assigned';
+    if (!isManager(user)) return 'Only managers can assign tasks';
+    if (assignedTo !== null) {
+        const inOrg = await User.exists({ _id: assignedTo, organization });
+        if (!inOrg) return 'Assignee is not in this organization';
+    }
+    return null;
+}
+
+// Turn known errors into proper status codes, log the unknown ones
+function handleError(error) {
+    if (error.name === 'ValidationError') {
+        const message = Object.values(error.errors).map((e) => e.message).join(', ');
+        return createResponse(400, null, message);
+    }
+    if (error.name === 'CastError') {
+        return createResponse(400, null, 'Invalid id');
+    }
+    console.error(error);
+    return createResponse(500, null, 'Internal server error');
+}
+
+// user is always the authenticated user (req.user), never taken from the request body
+
+export async function getOneTask(user, id) {
     try {
-        const data = await Task.findById(id);
-
-        if (data === null) {
-            return createResponse(404, null, 'Failed to find task');
-        }
-        return createResponse(200, data, 'found task successful');
-
-
+        const task = await Task.findOne({ _id: id, ...visibleTo(user) });
+        if (!task) return createResponse(404, null, 'Task not found');
+        return createResponse(200, task, 'Task found');
     } catch (error) {
-        return createResponse(500, null, 'internal server error');
-
+        return handleError(error);
     }
 }
 
-async function getAllTasksByUser(user_id) {
+export async function getTasks(user, { page = 1, limit = 20, status } = {}) {
     try {
-        const data = await Task.find({ 'created_by': user_id })
-        return createResponse(200, data, 'found task successful');
+        const filter = visibleTo(user);
+        // typeof check blocks query-string injection like ?status[$ne]=DONE
+        if (typeof status === 'string') filter.status = status;
 
+        const safePage = Math.max(Number(page) || 1, 1);
+        const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+
+        const [tasks, total] = await Promise.all([
+            Task.find(filter)
+                .sort({ created_at: -1 })
+                .skip((safePage - 1) * safeLimit)
+                .limit(safeLimit),
+            Task.countDocuments(filter)
+        ]);
+
+        return createResponse(200, {
+            tasks,
+            total,
+            page: safePage,
+            pages: Math.ceil(total / safeLimit)
+        }, 'Tasks found');
     } catch (error) {
-        return createResponse(500, null, 'internal server error');
+        return handleError(error);
     }
 }
 
-
-async function addTask(body) {
+export async function addTask(user, body) {
     try {
-        const task = {
-            title: body.title,
-            content: body.content,
-            created_by: body.user_id,
-            status: body.status,
+        const data = pick(body, CREATABLE);
+        data.created_by = user._id;
+
+        if (body.is_org_task) {
+            if (!user.organization) return createResponse(400, null, 'You are not in an organization');
+            data.organization = user.organization;
         }
 
-        const data = await Task.create(task);
-        return createResponse(201, data, 'Task created successfully')
+        if (body.assigned_to) {
+            const problem = await checkAssignment(user, data.organization, body.assigned_to);
+            if (problem) return createResponse(403, null, problem);
+            data.assigned_to = body.assigned_to;
+        }
 
+        const task = await Task.create(data);
+        await recordTaskCreated(task, user._id);
+        return createResponse(201, task, 'Task created successfully');
     } catch (error) {
-        return createResponse(500, null, 'internal server error');
+        return handleError(error);
     }
-
-
 }
 
-async function updateTask(body) {
+// Handles every edit, including marking a task DONE.
+// completed_at is set by the model hook when status changes, so no separate "finished" function.
+export async function updateTask(user, id, body) {
     try {
-        const task = {
-            title: body.title,
-            content: body.content,
-            created_by: body.user_id,
-            status: body.status,
-            completed_at: body.completed_at
+        const task = await Task.findOne({ _id: id, ...visibleTo(user) });
+        if (!task) return createResponse(404, null, 'Task not found');
+        if (!canModify(user, task)) return createResponse(403, null, 'Not allowed to edit this task');
+
+        const updates = pick(body, EDITABLE);
+
+        if ('assigned_to' in body) {
+            const assignedTo = body.assigned_to ?? null;
+            const problem = await checkAssignment(user, task.organization, assignedTo);
+            if (problem) return createResponse(403, null, problem);
+            updates.assigned_to = assignedTo;
         }
-        const taskToUpdate = await Task.findById(body.id);
-        if (taskToUpdate === null) {
-            return createResponse(404, null, 'unable to find task')
+
+        if (Object.keys(updates).length === 0) {
+            return createResponse(400, null, 'No valid fields to update');
         }
 
+        const before = task.toObject();
+        task.set(updates);
+        await task.save(); // runs validators and the completed_at hook
+        await recordTaskUpdate(before, task, user._id);
 
-        taskToUpdate.title = task.title;
-        taskToUpdate.content = task.content;
-        taskToUpdate.status = task.status;
-        taskToUpdate.completed_at = task.completed_at;
-
-        await taskToUpdate.save();
-        return createResponse(200, taskToUpdate, 'Task updated successfully')
-
+        return createResponse(200, task, 'Task updated successfully');
     } catch (error) {
-        return createResponse(500, null, 'internal server error');
+        return handleError(error);
     }
-
-
 }
 
-async function deleteTask(id) {
+// Soft delete: the task disappears from queries but history entries still point at it
+export async function deleteTask(user, id) {
     try {
-        const data = await Task.findByIdAndDelete(id);
-        if (data === null) {
-            return createResponse(404, null, 'unable to find task')
-        }
-        return createResponse(200, data, 'Task deleted successfully');
+        const task = await Task.findOne({ _id: id, ...visibleTo(user) });
+        if (!task) return createResponse(404, null, 'Task not found');
+        if (!canModify(user, task)) return createResponse(403, null, 'Not allowed to delete this task');
 
+        const before = task.toObject();
+        task.deleted_at = new Date();
+        await task.save();
+        await recordTaskUpdate(before, task, user._id);
+
+        return createResponse(200, null, 'Task deleted successfully');
     } catch (error) {
-        return createResponse(500, null, 'internal server error');
+        return handleError(error);
     }
-
 }
