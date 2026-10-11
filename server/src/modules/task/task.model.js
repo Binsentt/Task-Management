@@ -14,11 +14,13 @@ const taskSchema = new mongoose.Schema({
         trim: true
     },
     created_by: {
-        type: Schema.Types.ObjectId, ref: 'User'
+        type: Schema.Types.ObjectId, ref: 'User',
+        required: true,
     },
     status: {
         type: String,
-        enum: ['TO_DO', 'IN_PROGRESS', 'DONE']
+        enum: ['TO_DO', 'IN_PROGRESS', 'DONE'],
+        default: 'TO_DO'
     },
     completed_at: {
         type: Date

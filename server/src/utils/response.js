@@ -1,8 +1,7 @@
-export default function response(status, data, message) {
-    const payload = {
+export default function createResponse({ status, data = null, message = ""}) {
+    return  {
         status,
         data,
         message
-    }
-    return payload;
+    };
 }
