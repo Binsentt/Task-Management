@@ -3,7 +3,11 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes.js';
 import historyRoutes from './modules/history/history.routes.js';
+import organizationRoutes from './modules/organization/organization.routes.js';
+import presenceRoutes from './modules/presence/presence.routes.js';
+import remoteShiftRoutes from './modules/remoteshift/remoteshift.routes.js';
 import taskRoutes from './modules/task/task.routes.js';
+import userRoutes from './modules/user/user.routes.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -24,12 +28,11 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/organizations', organizationRoutes);
+app.use('/api/presence', presenceRoutes);
+app.use('/api/shifts', remoteShiftRoutes);
 app.use('/api/tasks', taskRoutes);
-// Mount these as you finish them (empty route files will crash the import):
-// app.use('/api/tasks', taskRoutes);
-// app.use('/api/organizations', organizationRoutes);
-// app.use('/api/shifts', remoteShiftRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 
 // Must stay last
 app.use(notFound);

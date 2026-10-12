@@ -9,6 +9,10 @@ export async function getTasks(req, res) {
     return send(res, await taskService.getTasks(req.user, { page, limit, status }));
 }
 
+export async function getOrganizationCompletion(req, res) {
+    return send(res, await taskService.getOrganizationCompletion(req.user));
+}
+
 // GET /api/tasks/:id
 export async function getTask(req, res) {
     return send(res, await taskService.getOneTask(req.user, req.params.id));

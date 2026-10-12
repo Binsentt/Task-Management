@@ -1,7 +1,7 @@
 import Task from './task.model.js';
 import User from '../user/user.model.js';
 import createResponse from '../../utils/response.js';
-import { recordTaskCreated, recordTaskUpdate } from '../history/historyService.js';
+import { recordTaskCreated, recordTaskUpdate } from '../history/history.service.js';
 
 // Allowlists: only these fields can ever come from the client.
 // Everything else (created_by, organization, completed_at, deleted_at...) is set by the server.
@@ -88,6 +88,58 @@ export async function getTasks(user, { page = 1, limit = 20, status } = {}) {
             page: safePage,
             pages: Math.ceil(total / safeLimit)
         }, 'Tasks found');
+    } catch (error) {
+        return handleError(error);
+    }
+}
+
+export async function getOrganizationCompletion(user) {
+    try {
+        if (!['MANAGER', 'ADMIN'].includes(user.org_role) || !user.organization) {
+            return createResponse(403, null, 'Insufficient permissions');
+        }
+
+        const [members, summaries] = await Promise.all([
+            User.find({ organization: user.organization })
+                .select('_id username email org_role')
+                .sort({ username: 1 })
+                .lean(),
+            Task.aggregate([
+                {
+                    $match: {
+                        organization: user.organization,
+                        assigned_to: { $ne: null },
+                        deleted_at: null
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$assigned_to',
+                        assigned: { $sum: 1 },
+                        completed: {
+                            $sum: { $cond: [{ $eq: ['$status', 'DONE'] }, 1, 0] }
+                        }
+                    }
+                }
+            ])
+        ]);
+
+        const summaryByUser = new Map(summaries.map((summary) => [summary._id.toString(), summary]));
+        const report = members.map((member) => {
+            const summary = summaryByUser.get(member._id.toString()) || { assigned: 0, completed: 0 };
+            const active = summary.assigned - summary.completed;
+            return {
+                user: member,
+                assigned: summary.assigned,
+                completed: summary.completed,
+                active,
+                completion_percentage: summary.assigned
+                    ? Math.round((summary.completed / summary.assigned) * 100)
+                    : 0
+            };
+        });
+
+        return createResponse(200, report, 'Organization completion report found');
     } catch (error) {
         return handleError(error);
     }

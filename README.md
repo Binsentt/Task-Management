@@ -1,9 +1,9 @@
 # Task Management System
 
-A MERN-ready task management project with a responsive React landing page. The
-frontend is an independent Vite application; the Express server is scaffolded
-for future backend work and does not yet include task APIs, authentication, or
-database integration.
+A MERN task-management application with authenticated personal tasks,
+organization collaboration, remote shifts, presence tracking, and realtime
+WebSocket updates. The React frontend is in `Task/`; the Express/MongoDB API is
+in `server/`.
 
 ## Requirements
 
@@ -47,7 +47,7 @@ npm test
 The Vite frontend in `Task/` uses React, Tailwind CSS v4 through `@tailwindcss/vite`, and
 lucide-react. It can be built and run independently of the backend.
 
-## Backend scaffold
+## Backend
 
 Create the local server environment file from the safe example:
 
@@ -61,9 +61,53 @@ Start the Express server in watch mode:
 npm run dev:server
 ```
 
-The backend currently only starts Express on the configured `PORT` (default
-`5000`). MongoDB, authentication, task APIs, and CRUD operations have not been
-implemented.
+Required backend variables are `MONGODB_URI` and a `JWT_SECRET` with at least
+32 characters. `CLIENT_URL` controls credentialed CORS. The server exposes
+REST routes under `/api` and an authenticated WebSocket endpoint at `/ws`.
+
+Start the backend:
+
+```bash
+npm run dev:server
+```
+
+Run backend smoke tests without MongoDB:
+
+```bash
+npm run test --workspace=server
+```
+
+### REST contract
+
+Authentication uses an `httpOnly` `token` cookie. Browser clients must send
+requests with credentials enabled (`credentials: 'include'` or Axios
+`withCredentials: true`).
+
+- `/api/auth`: register, login, logout, and current-user session.
+- `/api/tasks`: personal and organization task CRUD.
+- `/api/tasks/organization/completion`: manager/admin completion report.
+- `/api/users`: profile and organization-member reads.
+- `/api/organizations`: create, join by invite code, members, roles, settings, and ownership.
+- `/api/shifts`: clock in/out, shift listing, corrections, and overlong flags.
+- `/api/presence`: heartbeat, presence listing, manager pings, and ping responses.
+- `/api/history`: organization and task audit history.
+
+All organization data is scoped to the authenticated user's organization.
+
+### WebSocket contract
+
+Connect to the API origin with `/ws`, for example
+`ws://localhost:5000/ws` in development or `wss://api.example.com/ws` in
+production. The existing auth cookie authenticates the upgrade. WebSocket
+messages use `{ "type": "...", "data": {} }`.
+
+Supported events include `presence:heartbeat`, `presence:ping`,
+`presence:respond`, `presence:snapshot`, `presence:update`,
+`presence:ping_update`, and `shift:update`. REST remains the source of truth
+and fallback when the socket is disconnected.
+
+The current realtime connection registry is single-instance. Use shared state
+such as Redis before horizontally scaling WebSocket servers.
 
 ## Project layout
 
