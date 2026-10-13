@@ -72,12 +72,18 @@ Open `server/.env` and use:
 PORT=5000
 MONGODB_URI=mongodb+srv://<database-user>:<url-encoded-password>@<cluster-host>/<database-name>?retryWrites=true&w=majority
 JWT_SECRET=<generated-secret>
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=http://localhost:5174
 NODE_ENV=development
 COOKIE_SAMESITE=lax
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
 ```
 
 Use `MONGODB_URI` exactly. Do not write `MONGO_URI` or use YAML-style `MONGODB_URI:` syntax.
+Configure the `SMTP_*` fields to enable password-reset email delivery. Until then, the reset request API explicitly reports which SMTP variable names are missing and does not claim an email was sent.
 
 Never commit `server/.env`.
 
@@ -107,6 +113,8 @@ Open a terminal in the project root and run:
 npm start --workspace=server
 ```
 
+On Windows in development, the backend automatically reads the configured IPv4 DNS resolvers and applies them only to its Node.js process when connecting with an Atlas `mongodb+srv` URI. This handles environments where Node's default resolver differs from Windows DNS; it does not change system DNS, require a DNS-server setting, or affect production startup.
+
 A successful startup should show:
 
 ```text
@@ -125,13 +133,13 @@ curl http://localhost:5000/api/health
 Open another terminal and run:
 
 ```bash
-npm run dev
+npm run dev --workspace=Task -- --port=5174
 ```
 
-Open the Vite URL shown in the terminal, normally:
+Open:
 
 ```text
-http://localhost:5173
+http://localhost:5174
 ```
 
 Use `localhost` consistently for both frontend and backend. Do not mix it with `127.0.0.1` while testing cookies.
@@ -167,12 +175,13 @@ Check:
 - The database username/password are correct.
 - The password is URL-encoded inside the URI.
 - You copied the URI from **Connect > Drivers**.
+- On Windows, make sure the active network adapter has DNS servers configured; development startup uses those for Atlas SRV resolution within the backend process.
 
 ### CORS or cookie problems
 
 Check:
 
-- Backend has `CLIENT_URL=http://localhost:5173`.
+- Backend has `CLIENT_URL=http://localhost:5174`.
 - Frontend has `VITE_API_URL=http://localhost:5000/api`.
 - Axios uses credentials, which is already configured in the project.
 - Both applications use `localhost`.

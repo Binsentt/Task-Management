@@ -23,7 +23,7 @@ apiClient.interceptors.response.use(
         const requestUrl = error.config?.url || '';
         const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
         if (error.response?.status === 401 && !isAuthRequest) {
-            window.dispatchEvent(new CustomEvent('auth:expired'));
+            window.dispatchEvent(new window.CustomEvent('auth:expired'));
         }
         return Promise.reject(error);
     }

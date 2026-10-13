@@ -1,13 +1,29 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 
+vi.mock('./api/authApi.js', () => ({
+  me: vi.fn(),
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
+  checkAvailability: vi.fn(),
+  forgotPassword: vi.fn(),
+  resetPassword: vi.fn(),
+}))
+
+import * as authApi from './api/authApi.js'
+
 afterEach(cleanup)
+beforeEach(() => {
+  window.history.replaceState({}, '', '/')
+  authApi.me.mockRejectedValue({ response: { status: 401 } })
+})
 
 describe('landing page', () => {
-  it('shows the requested hero copy and links to the start section', () => {
+  it('shows the requested hero copy and routes every Get Started link to signup', () => {
     render(<App />)
 
     expect(
@@ -19,10 +35,7 @@ describe('landing page', () => {
     const startLinks = screen.getAllByRole('link', { name: /get started/i })
     expect(startLinks.length).toBeGreaterThan(0)
     expect(
-      startLinks.every((link) => {
-        const target = link.getAttribute('href')
-        return target?.startsWith('#') && document.querySelector(target)
-      }),
+      startLinks.every((link) => link.getAttribute('href') === '/signup'),
     ).toBe(true)
   })
 

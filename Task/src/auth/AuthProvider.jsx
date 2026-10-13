@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/authApi.js';
-import { env } from '../lib/env.js';
 
 const AuthContext = createContext(null);
 
@@ -49,7 +48,7 @@ export function AuthProvider({ children }) {
             setStatus('anonymous');
         };
         window.addEventListener('auth:expired', handleExpired);
-        if (env.appEnv === 'test') setStatus('anonymous');
+        if (import.meta.env.MODE === 'test') setStatus('anonymous');
         else refreshSession();
         return () => window.removeEventListener('auth:expired', handleExpired);
     }, []);

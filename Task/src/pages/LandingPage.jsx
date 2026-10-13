@@ -10,6 +10,7 @@ import {
   ListChecks,
   Sparkles,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import DashboardPreview from '../components/DashboardPreview.jsx'
 import FeatureCard from '../components/FeatureCard.jsx'
 import Navigation, { Brand } from '../components/Navigation.jsx'
@@ -110,13 +111,13 @@ function LandingPage() {
                 productivity with our simple task management system.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#get-started"
+                <Link
+                  to="/signup"
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-600/25"
                 >
                   Get Started
                   <ArrowRight aria-hidden="true" size={17} />
-                </a>
+                </Link>
                 <a
                   href="#features"
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-6 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-white hover:text-indigo-700"
@@ -225,14 +226,14 @@ function LandingPage() {
                     your priorities moving forward.
                   </p>
                 </div>
-                <a
+                <Link
                   id="get-started"
-                  href="#home"
+                  to="/signup"
                   className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-indigo-700 shadow-lg shadow-indigo-950/10 transition hover:-translate-y-0.5 hover:bg-indigo-50"
                 >
                   Get Started
                   <ChevronRight aria-hidden="true" size={17} />
-                </a>
+                </Link>
               </div>
             </div>
           </div>
