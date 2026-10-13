@@ -3,10 +3,10 @@ import * as taskService from './task.service.js';
 // The service already returns { status, data, message } from createResponse
 const send = (res, result) => res.status(result.status).json(result);
 
-// GET /api/tasks?page=1&limit=20&status=TO_DO
+// GET /api/tasks?page=1&limit=20&status=TO_DO&scope=personal|organization
 export async function getTasks(req, res) {
-    const { page, limit, status } = req.query;
-    return send(res, await taskService.getTasks(req.user, { page, limit, status }));
+    const { page, limit, status, scope } = req.query;
+    return send(res, await taskService.getTasks(req.user, { page, limit, status, scope }));
 }
 
 export async function getOrganizationCompletion(req, res) {

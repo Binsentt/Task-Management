@@ -25,6 +25,9 @@ export async function requireAuth(req, res, next) {
         // fresh from the database, so role or organization changes apply right away
         const user = await User.findById(payload.sub);
         if (!user) return res.status(401).json({ message: 'Account no longer exists' });
+        if ((payload.ver ?? 0) !== (user.auth_version ?? 0)) {
+            return res.status(401).json({ message: 'Session has been invalidated, please log in again' });
+        }
 
         req.user = user;
         next();

@@ -3,9 +3,16 @@ import bcrypt from 'bcrypt';
 
 const { Schema } = mongoose;
 
-const SALT_ROUNDS = 12;
+export const PASSWORD_SALT_ROUNDS = 12;
 
 const userSchema = new Schema({
+    full_name: {
+        type: String,
+        trim: true,
+        minlength: 1,
+        maxlength: 100,
+        match: [/^(?:\p{L}\p{M}*)+(?: (?:\p{L}\p{M}*)+)*$/u, 'Full name can only contain letters and spaces']
+    },
     username: {
         type: String,
         required: true,
@@ -23,6 +30,12 @@ const userSchema = new Schema({
         lowercase: true,
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Invalid email address']
+    },
+    contact_number: {
+        type: String,
+        minlength: 1,
+        maxlength: 20,
+        match: [/^[0-9]+$/, 'Contact number can only contain digits']
     },
     // stored as a bcrypt hash, never returned unless asked: User.findOne().select('+password')
     password: {
@@ -53,6 +66,19 @@ const userSchema = new Schema({
     joined_org_at: {
         type: Date,
         default: null
+    },
+    auth_version: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    password_reset_token_hash: {
+        type: String,
+        select: false
+    },
+    password_reset_expires_at: {
+        type: Date,
+        select: false
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
@@ -72,7 +98,7 @@ userSchema.pre('validate', function () {
 // Mongoose 9: hooks are plain async functions, a thrown error fails the save
 userSchema.pre('save', async function () {
     if (!this.isModified('password')) return;
-    this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
+    this.password = await bcrypt.hash(this.password, PASSWORD_SALT_ROUNDS);
 });
 
 // usage: const user = await User.findOne({ email }).select('+password'); await user.comparePassword(input)
@@ -84,6 +110,8 @@ userSchema.methods.comparePassword = function (candidate) {
 userSchema.set('toJSON', {
     transform: (doc, ret) => {
         delete ret.password;
+        delete ret.password_reset_token_hash;
+        delete ret.password_reset_expires_at;
         delete ret.__v;
         return ret;
     }

@@ -22,6 +22,19 @@ const visibleTo = (user) => ({
     ]
 });
 
+const visibleForScope = (user, scope) => {
+    if (scope === 'personal') {
+        return { deleted_at: null, organization: null, created_by: user._id };
+    }
+    if (scope === 'organization') {
+        if (!user.organization) {
+            return null;
+        }
+        return { deleted_at: null, organization: user.organization };
+    }
+    return visibleTo(user);
+};
+
 // Who may edit or delete: the creator, the assignee, or a manager/admin (org tasks only)
 const canModify = (user, task) => {
     if (task.created_by.equals(user._id)) return true;
@@ -65,9 +78,15 @@ export async function getOneTask(user, id) {
     }
 }
 
-export async function getTasks(user, { page = 1, limit = 20, status } = {}) {
+export async function getTasks(user, { page = 1, limit = 20, status, scope = 'all' } = {}) {
     try {
-        const filter = visibleTo(user);
+        if (!['all', 'personal', 'organization'].includes(scope)) {
+            return createResponse(400, null, 'Invalid task scope');
+        }
+        const filter = visibleForScope(user, scope);
+        if (!filter) {
+            return createResponse(403, null, 'You must belong to an organization');
+        }
         // typeof check blocks query-string injection like ?status[$ne]=DONE
         if (typeof status === 'string') filter.status = status;
 

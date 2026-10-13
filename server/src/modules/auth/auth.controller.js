@@ -20,6 +20,21 @@ export async function login(req, res) {
     return respond(res, result);
 }
 
+export async function checkAvailability(req, res) {
+    const result = await authService.checkAvailability(req.body);
+    return res.status(result.status).json(result);
+}
+
+export async function requestPasswordReset(req, res) {
+    const result = await authService.requestPasswordReset(req.body);
+    return res.status(result.status).json(result);
+}
+
+export async function resetPassword(req, res) {
+    const result = await authService.resetPassword(req.body);
+    return res.status(result.status).json(result);
+}
+
 export function logout(req, res) {
     clearAuthCookie(res);
     return res.status(200).json({ status: 200, data: null, message: 'Logged out successfully' });

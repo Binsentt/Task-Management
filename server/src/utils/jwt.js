@@ -15,8 +15,8 @@ function getSecret() {
 
 // The token only identifies the user. Roles and organization are NOT stored in it,
 // they are loaded from the database on every request so changes apply immediately.
-export function signToken(userId) {
-    return jwt.sign({ sub: userId.toString() }, getSecret(), {
+export function signToken(userId, authVersion = 0) {
+    return jwt.sign({ sub: userId.toString(), ver: authVersion }, getSecret(), {
         algorithm: 'HS256',
         expiresIn: TOKEN_TTL_SECONDS
     });
