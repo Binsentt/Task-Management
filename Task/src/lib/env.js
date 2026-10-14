@@ -1,11 +1,11 @@
-const testDefaults = {
+const localDefaults = {
     VITE_API_URL: 'http://localhost:5000/api',
     VITE_WS_URL: 'ws://localhost:5000/ws',
 };
 
 function resolveUrl(name, environment) {
     const value = environment[name]
-        || (environment.MODE === 'test' ? testDefaults[name] : undefined);
+        || (['development', 'test'].includes(environment.MODE) ? localDefaults[name] : undefined);
     const normalized = typeof value === 'string' ? value.trim().replace(/\/$/, '') : '';
     return normalized || null;
 }

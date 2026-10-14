@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -25,7 +25,7 @@ vi.mock('./api/taskApi.js', () => ({
 
 afterEach(() => {
   cleanup()
-  vi.clearAllMocks()
+  vi.resetAllMocks()
   window.history.replaceState({}, '', '/')
 })
 
@@ -34,6 +34,42 @@ beforeEach(() => {
 })
 
 describe('authentication routes', () => {
+  it('renders the registration form while the initial session check is pending', () => {
+    window.history.replaceState({}, '', '/signup')
+    authApi.me.mockReturnValue(new Promise(() => {}))
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: /create your account/i })).toBeTruthy()
+    expect(screen.getByLabelText(/full name/i)).toBeTruthy()
+  })
+
+  it('does not let a late session failure overwrite a successful login', async () => {
+    const user = userEvent.setup()
+    let rejectSession
+    authApi.me.mockImplementation(() => new Promise((resolve, reject) => {
+      rejectSession = reject
+    }))
+    authApi.login.mockResolvedValue({
+      data: { data: { user: { _id: 'personal-user', full_name: 'Personal Member', organization: null } } },
+    })
+    taskApi.listTasks.mockResolvedValue({ data: { data: { tasks: [], pages: 1, total: 0 } } })
+    window.history.replaceState({}, '', '/login')
+    render(<App />)
+
+    await user.type(screen.getByLabelText(/username or email/i), 'member')
+    await user.type(screen.getByLabelText(/^password$/i), 'password')
+    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
+
+    await act(async () => {
+      rejectSession({ response: { status: 401 } })
+      await Promise.resolve()
+    })
+
+    expect(screen.getByRole('heading', { name: 'Overview' })).toBeTruthy()
+    expect(window.location.pathname).toBe('/dashboard')
+  })
+
   it('deduplicates session restoration in Strict Mode and treats a missing session as anonymous', async () => {
     window.history.replaceState({}, '', '/signup')
     authApi.me.mockRejectedValue({ response: { status: 401 } })
@@ -55,10 +91,12 @@ describe('authentication routes', () => {
       .mockRejectedValueOnce({ response: { status: 401 } })
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: /couldn't check your session/i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /create your account/i })).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toContain('We could not reach the API')
     await user.click(screen.getByRole('button', { name: /try again/i }))
 
     expect(await screen.findByRole('heading', { name: /create your account/i })).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(authApi.me).toHaveBeenCalledTimes(2)
   })
 
@@ -70,11 +108,12 @@ describe('authentication routes', () => {
       .mockRejectedValueOnce({ response: { status: 401 } })
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: /couldn't check your session/i })).toBeTruthy()
-    expect(screen.queryByLabelText(/username or email/i)).toBeNull()
+    expect(await screen.findByLabelText(/username or email/i)).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toContain('We could not reach the API')
     await user.click(screen.getByRole('button', { name: /try again/i }))
 
     expect(await screen.findByLabelText(/username or email/i)).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(authApi.me).toHaveBeenCalledTimes(2)
   })
 

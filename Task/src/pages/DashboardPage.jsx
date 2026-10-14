@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { ArrowRight, Check, CheckSquare2, LoaderCircle, LogOut, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, Check, CheckSquare2, LoaderCircle, LogOut, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import * as taskApi from '../api/taskApi.js'
 import { normalizeApiError } from '../api/client.js'
+import PersonalTaskDialog from '../components/PersonalTaskDialog.jsx'
 
 function DashboardPage({ scope }) {
   const { user, logout } = useAuth()
@@ -16,6 +17,10 @@ function DashboardPage({ scope }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [logoutError, setLogoutError] = useState('')
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [deletingTaskIds, setDeletingTaskIds] = useState(() => new Set())
+  const deletingTaskIdsRef = useRef(new Set())
 
   async function loadDashboard() {
     setLoading(true)
@@ -57,6 +62,7 @@ function DashboardPage({ scope }) {
   }
 
   async function toggleTask(task) {
+    setError('')
     try {
       const response = await taskApi.updateTask(task._id, {
         status: task.status === 'DONE' ? 'TO_DO' : 'DONE',
@@ -64,6 +70,49 @@ function DashboardPage({ scope }) {
       setTasks((current) => current.map((item) => item._id === task._id ? response.data.data : item))
     } catch (requestError) {
       setError(normalizeApiError(requestError).message)
+    }
+  }
+
+  function openNewTask() {
+    setEditingTask(null)
+    setTaskDialogOpen(true)
+  }
+
+  function openTask(task) {
+    setEditingTask(task)
+    setTaskDialogOpen(true)
+  }
+
+  async function saveTask(payload, taskId) {
+    if (taskId) {
+      const response = await taskApi.updateTask(taskId, payload)
+      setTasks((current) => current.map((task) => task._id === taskId ? response.data.data : task))
+      return response.data.data
+    }
+
+    const response = await taskApi.createTask(payload)
+    setTasks((current) => [response.data.data, ...current])
+    return response.data.data
+  }
+
+  async function removeTask(task) {
+    if (!window.confirm(`Delete “${task.title}”? This cannot be undone.`)) return
+    if (deletingTaskIdsRef.current.has(task._id)) return
+    deletingTaskIdsRef.current.add(task._id)
+    setDeletingTaskIds((current) => new Set(current).add(task._id))
+    setError('')
+    try {
+      await taskApi.deleteTask(task._id)
+      setTasks((current) => current.filter((item) => item._id !== task._id))
+    } catch (requestError) {
+      setError(normalizeApiError(requestError).message)
+    } finally {
+      deletingTaskIdsRef.current.delete(task._id)
+      setDeletingTaskIds((current) => {
+        const next = new Set(current)
+        next.delete(task._id)
+        return next
+      })
     }
   }
 
@@ -112,9 +161,14 @@ function DashboardPage({ scope }) {
                 <h2 className="text-lg font-semibold">Tasks</h2>
                 <p className="mt-1 text-sm text-slate-500">{tasks.length} total · {doneCount} completed</p>
               </div>
-              <button type="button" onClick={loadDashboard} aria-label="Refresh tasks" className="flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-700">
-                <RefreshCw size={16} aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={openNewTask} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-indigo-600 px-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                  <Plus size={16} aria-hidden="true" /> New task
+                </button>
+                <button type="button" onClick={loadDashboard} aria-label="Refresh tasks" className="flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-indigo-200 hover:text-indigo-700">
+                  <RefreshCw size={16} aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <form onSubmit={createTask} className="mt-6 flex gap-2">
@@ -135,12 +189,27 @@ function DashboardPage({ scope }) {
                 {tasks.map((task) => {
                   const complete = task.status === 'DONE'
                   return (
-                    <li key={task._id} className="flex items-center gap-3 py-4">
-                      <button type="button" onClick={() => toggleTask(task)} aria-label={`${complete ? 'Reopen' : 'Mark'} task ${task.title} ${complete ? '' : 'complete'}`.trim()} className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition ${complete ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-indigo-500'}`}>
-                        <Check size={14} aria-hidden="true" />
-                      </button>
-                      <span className={`min-w-0 flex-1 text-sm ${complete ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</span>
-                      <span className="text-xs text-slate-400">{task.priority?.toLowerCase() || 'medium'}</span>
+                    <li key={task._id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <button type="button" onClick={() => toggleTask(task)} aria-label={`${complete ? 'Reopen' : 'Mark'} task ${task.title} ${complete ? '' : 'complete'}`.trim()} className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border transition ${complete ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-indigo-500'}`}>
+                          <Check size={14} aria-hidden="true" />
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm ${complete ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</p>
+                          {task.content ? <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-slate-500">{task.content}</p> : null}
+                          {task.deadline ? <p className="mt-1 text-xs text-slate-500"><time dateTime={task.deadline}>{new Date(task.deadline).toLocaleString()}</time></p> : null}
+                          {task.checklist?.length ? <p className="mt-1 text-xs text-slate-500">{task.checklist.filter((item) => item.isDone).length} of {task.checklist.length} checklist items complete</p> : null}
+                        </div>
+                        <span className="shrink-0 text-xs text-slate-400">{task.priority?.toLowerCase() || 'medium'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 pl-9 sm:pl-0">
+                        <button type="button" onClick={() => openTask(task)} aria-label={`Edit ${task.title}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                          <Pencil size={14} aria-hidden="true" /> Edit
+                        </button>
+                        <button type="button" onClick={() => removeTask(task)} aria-label={`Delete ${task.title}`} disabled={deletingTaskIds.has(task._id)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-wait disabled:opacity-50">
+                          <Trash2 size={14} aria-hidden="true" /> Delete
+                        </button>
+                      </div>
                     </li>
                   )
                 })}
@@ -164,6 +233,14 @@ function DashboardPage({ scope }) {
           </aside>
         </div>
       </section>
+      {taskDialogOpen ? (
+        <PersonalTaskDialog
+          task={editingTask}
+          scope={organizationScope ? 'organization' : 'personal'}
+          onClose={() => setTaskDialogOpen(false)}
+          onSave={saveTask}
+        />
+      ) : null}
     </main>
   )
 }

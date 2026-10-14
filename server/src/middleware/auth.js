@@ -49,7 +49,9 @@ export const requireOrgRole = (minRole) => (req, res, next) => {
     if (!organization || !org_role) {
         return res.status(403).json({ message: 'You must belong to an organization' });
     }
-    if (ROLE_RANK[org_role] < ROLE_RANK[minRole]) {
+    const roleRank = Object.hasOwn(ROLE_RANK, org_role) ? ROLE_RANK[org_role] : null;
+    const requiredRank = Object.hasOwn(ROLE_RANK, minRole) ? ROLE_RANK[minRole] : null;
+    if (roleRank === null || requiredRank === null || roleRank < requiredRank) {
         return res.status(403).json({ message: 'Insufficient permissions' });
     }
     next();

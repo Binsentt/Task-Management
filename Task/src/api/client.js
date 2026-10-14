@@ -32,7 +32,9 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const requestUrl = error.config?.url || '';
-        const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+        const isAuthRequest = requestUrl.includes('/auth/login')
+            || requestUrl.includes('/auth/register')
+            || requestUrl.includes('/auth/me');
         if (error.response?.status === 401 && !isAuthRequest) {
             window.dispatchEvent(new window.CustomEvent('auth:expired'));
         }

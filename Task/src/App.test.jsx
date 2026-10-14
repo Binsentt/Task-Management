@@ -47,8 +47,9 @@ describe('landing page', () => {
 
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: "We couldn't check your session" })).toBeTruthy()
-    expect(screen.getByText('This deployment is missing VITE_API_URL. Sign-in and data features are unavailable until it is configured and rebuilt.')).toBeTruthy()
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toContain('This deployment is missing VITE_API_URL. Sign-in and data features are unavailable until it is configured and rebuilt.')
+    expect(screen.getByLabelText(/username or email/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 

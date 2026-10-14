@@ -32,3 +32,16 @@ test('non-Windows DNS configuration remains unchanged', () => {
 
     assert.equal(resolverChanged, false);
 });
+
+test('a failed Windows resolver lookup retains the existing DNS configuration', (context) => {
+    const messages = [];
+    context.mock.method(console, 'error', (...values) => messages.push(values.join(' ')));
+    let changed = false;
+    assert.doesNotThrow(() => databaseConfig.configureWindowsDnsServers({
+        platform: 'win32',
+        getServers: () => { throw new Error('PRIVATE_LOOKUP_DETAIL'); },
+        setServers: () => { changed = true; },
+    }));
+    assert.equal(changed, false);
+    assert.doesNotMatch(messages.join(' '), /PRIVATE_LOOKUP_DETAIL/);
+});

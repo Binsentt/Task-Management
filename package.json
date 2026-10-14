@@ -7,6 +7,7 @@
     "server"
   ],
   "scripts": {
+    "start": "npm run start --workspace=server",
     "dev": "npm run dev --workspace=Task",
     "build": "npm run build --workspace=Task",
     "preview": "npm run preview --workspace=Task",

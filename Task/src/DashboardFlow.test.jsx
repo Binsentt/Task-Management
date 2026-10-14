@@ -734,3 +734,143 @@ describe('personal task dialog', () => {
     expect(screen.getByRole('dialog')).toBe(dialog)
   })
 })
+
+describe('organization dashboard task management', () => {
+  const sharedTask = {
+    _id: 'shared-task-1',
+    title: 'Review the launch plan',
+    content: 'Confirm the owners and milestones.',
+    status: 'TO_DO',
+    priority: 'MEDIUM',
+    deadline: null,
+    checklist: [],
+  }
+
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/organization')
+    authenticate(organizationUser)
+    taskApi.listTasks.mockResolvedValue(taskPage([sharedTask]))
+    taskApi.getOrganization.mockResolvedValue({ data: { data: { name: 'Example Company' } } })
+  })
+
+  it('creates a detailed organization task through the API', async () => {
+    const user = userEvent.setup()
+    const createdTask = { ...sharedTask, _id: 'shared-task-2', title: 'Plan the launch' }
+    taskApi.createTask.mockResolvedValue({ data: { data: createdTask } })
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'New task' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Create task' })
+    await user.type(within(dialog).getByLabelText('Task title'), 'Plan the launch')
+    await user.type(within(dialog).getByLabelText('Description'), 'Assign the rollout owners.')
+    await user.selectOptions(within(dialog).getByLabelText('Priority'), 'HIGH')
+    await user.click(within(dialog).getByRole('button', { name: 'Save task' }))
+
+    expect(taskApi.createTask).toHaveBeenCalledWith({
+      title: 'Plan the launch',
+      content: 'Assign the rollout owners.',
+      deadline: null,
+      priority: 'HIGH',
+      checklist: [],
+      is_org_task: true,
+    })
+    expect(await screen.findByText('Plan the launch')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('edits an organization task through the API and shows the confirmed task', async () => {
+    const user = userEvent.setup()
+    const updatedTask = { ...sharedTask, title: 'Review the final launch plan' }
+    taskApi.updateTask.mockResolvedValue({ data: { data: updatedTask } })
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Review the launch plan' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Edit task' })
+    await user.clear(within(dialog).getByLabelText('Task title'))
+    await user.type(within(dialog).getByLabelText('Task title'), updatedTask.title)
+    await user.click(within(dialog).getByRole('button', { name: 'Save task' }))
+
+    expect(taskApi.updateTask).toHaveBeenCalledWith(sharedTask._id, expect.objectContaining({
+      title: updatedTask.title,
+      content: sharedTask.content,
+      priority: sharedTask.priority,
+    }))
+    expect(await screen.findByText(updatedTask.title)).toBeTruthy()
+    expect(screen.queryByText(sharedTask.title)).toBeNull()
+  })
+
+  it('marks an organization task complete using the server-confirmed update', async () => {
+    const user = userEvent.setup()
+    const completedTask = { ...sharedTask, status: 'DONE' }
+    taskApi.updateTask.mockResolvedValue({ data: { data: completedTask } })
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Mark task Review the launch plan complete' }))
+
+    expect(taskApi.updateTask).toHaveBeenCalledWith(sharedTask._id, { status: 'DONE' })
+    expect(await screen.findByText('1 total · 1 completed')).toBeTruthy()
+  })
+
+  it('deletes an organization task only after confirmation and API success', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    taskApi.deleteTask.mockResolvedValue({ data: { message: 'Task deleted successfully' } })
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Review the launch plan' }))
+
+    expect(confirm).toHaveBeenCalledWith('Delete “Review the launch plan”? This cannot be undone.')
+    expect(taskApi.deleteTask).toHaveBeenCalledWith(sharedTask._id)
+    await waitFor(() => expect(screen.queryByText(sharedTask.title)).toBeNull())
+    confirm.mockRestore()
+  })
+
+  it('disables delete while a confirmed request is pending to prevent duplicate submissions', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    let resolveDelete
+    const pendingDelete = new Promise((resolve) => { resolveDelete = resolve })
+    taskApi.deleteTask.mockReturnValue(pendingDelete)
+    render(<App />)
+
+    const deleteButton = await screen.findByRole('button', { name: 'Delete Review the launch plan' })
+    await user.click(deleteButton)
+    const disabledWhilePending = deleteButton.disabled
+
+    await user.click(deleteButton)
+    const deleteRequestCount = taskApi.deleteTask.mock.calls.length
+
+    resolveDelete({ data: { message: 'Task deleted successfully' } })
+    await waitFor(() => expect(screen.queryByText(sharedTask.title)).toBeNull())
+    expect(disabledWhilePending).toBe(true)
+    expect(deleteRequestCount).toBe(1)
+    confirm.mockRestore()
+  })
+
+  it('does not delete an organization task when confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Review the launch plan' }))
+
+    expect(taskApi.deleteTask).not.toHaveBeenCalled()
+    expect(screen.getByText(sharedTask.title)).toBeTruthy()
+    confirm.mockRestore()
+  })
+
+  it('keeps a task visible and reports a permission error when deletion is rejected', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    taskApi.deleteTask.mockRejectedValue({
+      response: { status: 403, data: { message: 'Not allowed to delete this task' } },
+    })
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Review the launch plan' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Not allowed to delete this task')
+    expect(screen.getByText(sharedTask.title)).toBeTruthy()
+    confirm.mockRestore()
+  })
+})

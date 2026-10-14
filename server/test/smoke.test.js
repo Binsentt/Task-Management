@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
 import WebSocket from 'ws';
+import mongoose from 'mongoose';
 import app from '../src/app.js';
 import { attachRealtime } from '../src/realtime/websocket.js';
 
@@ -17,14 +18,45 @@ async function stopServer({ server, realtime }) {
     await new Promise((resolve) => server.close(resolve));
 }
 
-test('health endpoint responds without authentication', async () => {
-    const context = await startServer();
+async function withMongoReadyState(readyState, callback) {
+    const descriptor = Object.getOwnPropertyDescriptor(mongoose.connection, 'readyState');
+    Object.defineProperty(mongoose.connection, 'readyState', {
+        configurable: true,
+        enumerable: descriptor?.enumerable ?? true,
+        writable: true,
+        value: readyState,
+    });
+
     try {
-        const response = await fetch(`http://127.0.0.1:${context.port}/api/health`);
-        assert.equal(response.status, 200);
+        await callback();
     } finally {
-        await stopServer(context);
+        if (descriptor) Object.defineProperty(mongoose.connection, 'readyState', descriptor);
+        else delete mongoose.connection.readyState;
     }
+}
+
+test('health endpoint reports unavailable when MongoDB is disconnected', async () => {
+    await withMongoReadyState(0, async () => {
+        const context = await startServer();
+        try {
+            const response = await fetch(`http://127.0.0.1:${context.port}/api/health`);
+            assert.equal(response.status, 503);
+        } finally {
+            await stopServer(context);
+        }
+    });
+});
+
+test('health endpoint responds when MongoDB is connected', async () => {
+    await withMongoReadyState(1, async () => {
+        const context = await startServer();
+        try {
+            const response = await fetch(`http://127.0.0.1:${context.port}/api/health`);
+            assert.equal(response.status, 200);
+        } finally {
+            await stopServer(context);
+        }
+    });
 });
 
 test('protected REST routes reject anonymous requests', async () => {

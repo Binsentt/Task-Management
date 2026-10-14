@@ -29,20 +29,26 @@ function AuthPage({ children }) {
   const { user, status, sessionError, refreshSession } = useAuth()
   const location = useLocation()
 
-  if (status === 'loading') {
-    return <PageMessage title="Checking your session..." />
-  }
-  if (status === 'error') {
-    return (
-      <PageMessage
-        title="We couldn't check your session"
-        detail={sessionError || 'Check your connection and try again.'}
-        action={refreshSession}
-      />
-    )
-  }
   if (user) return <Navigate to={dashboardPath(user)} replace state={{ from: location }} />
-  return children
+  return (
+    <>
+      {status === 'error' ? (
+        <div role="alert" className="flex flex-col justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center sm:px-6">
+          <div>
+            <p className="text-sm font-semibold">We couldn't check your session</p>
+            <p className="mt-0.5 text-sm">{sessionError || 'Check your connection and try again.'}</p>
+          </div>
+          <button
+            className="min-h-10 self-start rounded-lg border border-amber-300 bg-white px-3.5 text-sm font-semibold text-amber-950 hover:bg-amber-100 sm:self-auto"
+            onClick={refreshSession}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
+      {children}
+    </>
+  )
 }
 
 function ProtectedDashboard({ scope }) {

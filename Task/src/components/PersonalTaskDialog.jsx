@@ -23,7 +23,7 @@ function formValuesForTask(task) {
   }
 }
 
-function PersonalTaskDialog({ task, onClose, onSave }) {
+function PersonalTaskDialog({ task, onClose, onSave, scope = 'personal' }) {
   const [form, setForm] = useState(() => formValuesForTask(task))
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,6 +32,7 @@ function PersonalTaskDialog({ task, onClose, onSave }) {
   const titleInputRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const organizationScope = scope === 'organization'
 
   useEffect(() => {
     const previouslyFocused = document.activeElement
@@ -115,7 +116,7 @@ function PersonalTaskDialog({ task, onClose, onSave }) {
         isDone,
         order,
       })),
-      ...(!task ? { is_org_task: false } : {}),
+      ...(!task ? { is_org_task: organizationScope } : {}),
     }
 
     submittingRef.current = true
@@ -176,7 +177,9 @@ function PersonalTaskDialog({ task, onClose, onSave }) {
               {heading}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {task ? 'Update the details for this task.' : 'Add the details for your personal task.'}
+              {task
+                ? 'Update the details for this task.'
+                : `Add the details for your ${organizationScope ? 'organization' : 'personal'} task.`}
             </p>
           </div>
           <button
