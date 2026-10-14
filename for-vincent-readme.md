@@ -73,6 +73,8 @@ PORT=5000
 MONGODB_URI=mongodb+srv://<database-user>:<url-encoded-password>@<cluster-host>/<database-name>?retryWrites=true&w=majority
 JWT_SECRET=<generated-secret>
 CLIENT_URL=http://localhost:5174
+# Optional comma-separated additional frontend origins, including their actual ports.
+CORS_ORIGINS=
 NODE_ENV=development
 COOKIE_SAMESITE=lax
 SMTP_HOST=
@@ -181,8 +183,8 @@ Check:
 
 Check:
 
-- Backend has `CLIENT_URL=http://localhost:5174`.
-- Frontend has `VITE_API_URL=http://localhost:5000/api`.
+- `CLIENT_URL` or `CORS_ORIGINS` includes the exact browser origin, including its actual port.
+- Frontend has `VITE_API_URL` set to the reachable backend's `/api` URL.
 - Axios uses credentials, which is already configured in the project.
 - Both applications use `localhost`.
 

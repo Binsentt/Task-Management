@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import AppLink from '../components/AppLink.jsx'
 import AuthLayout from '../components/AuthLayout.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { normalizeApiError } from '../api/client.js'
@@ -37,12 +38,12 @@ function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="mt-9">
+      <div className="mt-7 sm:mt-9">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Welcome back</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Log in to your account</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Log in to your account</h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">Pick up where you left off.</p>
       </div>
-      <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+      <form className="mt-7 space-y-5 sm:mt-8" onSubmit={handleSubmit}>
         <div>
           <label htmlFor="login-identifier" className="mb-1.5 block text-sm font-medium text-slate-700">Username or email</label>
           <input id="login-identifier" autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} className={inputClass} />
@@ -50,27 +51,27 @@ function LoginPage() {
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label htmlFor="login-password" className="text-sm font-medium text-slate-700">Password</label>
-            <Link to="/forgot-password" className="text-xs font-semibold text-indigo-700 hover:text-indigo-800">Forgot password?</Link>
+            <AppLink to="/forgot-password" className="text-xs font-semibold text-indigo-700 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">Forgot password?</AppLink>
           </div>
           <div className="relative">
             <input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className={`${inputClass} pr-12`} />
-            <button type="button" aria-label={`${showPassword ? 'Hide' : 'Show'} password`} onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 hover:text-indigo-700">
+            <button type="button" aria-label={`${showPassword ? 'Hide' : 'Show'} password`} onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
               {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
           </div>
         </div>
-        {errorMessage ? <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</p> : null}
-        <button type="submit" disabled={submitting} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/15 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
+        {errorMessage ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</p> : null}
+        <button type="submit" disabled={submitting} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/15 transition hover:-translate-y-0.5 hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
           {submitting ? <><LoaderCircle size={17} className="animate-spin" aria-hidden="true" />Logging in...</> : <><LockKeyhole size={16} aria-hidden="true" />Log in</>}
         </button>
       </form>
       <p className="mt-7 text-center text-sm text-slate-600">
-        Don’t have an account? <Link to="/signup" className="font-semibold text-indigo-700 hover:text-indigo-800">Create account</Link>
+        Don’t have an account? <AppLink to="/signup" className="font-semibold text-indigo-700 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">Create account</AppLink>
       </p>
     </AuthLayout>
   )
 }
 
-const inputClass = 'h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100'
+const inputClass = 'h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100'
 
 export default LoginPage

@@ -62,8 +62,10 @@ npm run dev:server
 ```
 
 Required backend variables are `MONGODB_URI` and a `JWT_SECRET` with at least
-32 characters. `CLIENT_URL` controls credentialed CORS. The server exposes
-REST routes under `/api` and an authenticated WebSocket endpoint at `/ws`.
+32 characters. `CLIENT_URL` and the optional comma-separated `CORS_ORIGINS`
+configure the exact frontend origins allowed to use credentialed CORS. Set them
+to the frontend's actual origin(s), including the port. The server exposes REST
+routes under `/api` and an authenticated WebSocket endpoint at `/ws`.
 
 Start the backend:
 
@@ -122,3 +124,37 @@ The frontend deployment root is `Task/`. In the Vercel project settings, set
 the Root Directory to `Task`, Framework Preset to Vite, Build Command to
 `npm run build`, and Output Directory to `dist`. The frontend also includes a
 `vercel.json` with the Vite build and output settings.
+
+The Express API is a separate service; deploying this Vite project does not
+deploy `server/`. Before the frontend can authenticate, deploy the backend to a
+public HTTPS host and set these Vercel **Production** environment variables
+before rebuilding:
+
+- `VITE_API_URL`: the reachable backend origin followed by `/api`.
+- `VITE_WS_URL`: the same backend origin using `wss://`, followed by `/ws`.
+
+Do not use localhost values in the production Vercel environment. No backend
+deployment URL is defined in this repository; use the URL supplied by the
+backend hosting provider.
+
+Configure the backend host separately:
+
+- `MONGODB_URI` and `JWT_SECRET` are required private backend variables. Allow
+  the backend host to reach the MongoDB Atlas cluster in Atlas Network Access.
+- Set `NODE_ENV=production` and `CLIENT_URL` to the exact deployed frontend
+  origin, such as `https://task-managements-system-project.vercel.app`.
+  Optionally list other exact allowed frontend origins in comma-separated
+  `CORS_ORIGINS`. Do not use wildcard origins with credentialed CORS.
+- Auth cookies are HttpOnly and Secure in production. `COOKIE_SAMESITE=lax`
+  works for same-site deployments. If the frontend and API are on different
+  sites, use HTTPS for both and configure `COOKIE_SAMESITE=none`; browsers may
+  still restrict third-party cookies, so a shared custom site domain is
+  preferable where possible.
+- Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and
+  `SMTP_FROM` for password-reset email. Verify actual delivery before claiming
+  the reset-email flow is production-ready.
+
+The currently deployed frontend was checked and reported a missing
+`VITE_API_URL` at runtime. Until the production Vercel variables are set and a
+reachable backend URL is provided, production login, signup, and session
+restoration cannot be verified.

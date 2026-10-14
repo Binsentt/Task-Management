@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Eye, EyeOff, LoaderCircle } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import AppLink from '../components/AppLink.jsx'
 import AuthLayout from '../components/AuthLayout.jsx'
 import { useAuth } from '../auth/AuthProvider.jsx'
 import { getPasswordStrength, sanitizeFieldValue, validateSignupField } from '../auth/validation.js'
@@ -28,6 +29,7 @@ function SignupPage() {
   const [availability, setAvailability] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const { register } = useAuth()
@@ -77,7 +79,10 @@ function SignupPage() {
 
   function fieldError(field) {
     const validation = validateSignupField(field, values[field], values)
-    return touched[field] ? validation || (typeof availability[field] === 'string' ? availability[field] : '') : ''
+    const message = field === 'password' && /72 UTF-8 bytes/i.test(validation)
+      ? 'Password is too long'
+      : validation
+    return touched[field] ? message || (typeof availability[field] === 'string' ? availability[field] : '') : ''
   }
 
   async function handleSubmit(event) {
@@ -137,7 +142,7 @@ function SignupPage() {
       </div>
 
       <form className="mt-7 space-y-4" onSubmit={handleSubmit} noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Field label="Full name" error={fieldError('full_name')}>
             <input id="full-name" autoComplete="name" value={values.full_name} onChange={(event) => updateField('full_name', event.target.value)} onBlur={() => setTouched((current) => ({ ...current, full_name: true }))} className={inputClass(fieldError('full_name'))} />
           </Field>
@@ -152,10 +157,10 @@ function SignupPage() {
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Field label="Password" error={passwordError}>
             <div className="relative">
-              <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={values.password} onChange={(event) => updateField('password', event.target.value)} onBlur={() => setTouched((current) => ({ ...current, password: true }))} className={`${inputClass(passwordError)} pr-11`} />
+              <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={values.password} onChange={(event) => updateField('password', event.target.value)} onFocus={() => setPasswordFocused(true)} onBlur={() => setTouched((current) => ({ ...current, password: true }))} className={`${inputClass(passwordError)} pr-11`} />
               <VisibilityButton visible={showPassword} onClick={() => setShowPassword((visible) => !visible)} label="password" />
             </div>
           </Field>
@@ -167,24 +172,28 @@ function SignupPage() {
           </Field>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-700">Password requirements</p>
-            <p className={`text-xs font-semibold ${strengthColor}`}>{strength.label}</p>
+        {passwordFocused || values.password ? (
+          <div aria-live="polite" className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-700">Password requirements</p>
+              <p className={`text-xs font-semibold ${strengthColor}`}>{strength.label}</p>
+            </div>
+            <ul className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+              {strength.rules
+                .filter(({ label }) => label !== 'At most 72 UTF-8 bytes')
+                .map(({ label, passed }) => (
+                  <li key={label} className={`flex items-center gap-2 ${passed ? 'text-indigo-700' : 'text-slate-500'}`}>
+                    <Check size={14} className={passed ? 'opacity-100' : 'opacity-35'} aria-hidden="true" />
+                    {label}
+                  </li>
+                ))}
+            </ul>
           </div>
-          <ul className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-            {strength.rules.map(({ label, passed }) => (
-              <li key={label} className={`flex items-center gap-2 ${passed ? 'text-emerald-700' : ''}`}>
-                <Check size={14} className={passed ? 'opacity-100' : 'opacity-25'} aria-hidden="true" />
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
+        ) : null}
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-slate-700">Account type</legend>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-2 min-[360px]:grid-cols-2 min-[360px]:gap-3">
             {[
               ['individual', 'Individual'],
               ['organization', 'Organization'],
@@ -210,7 +219,7 @@ function SignupPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-600">
-        Already have an account? <Link to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Log in</Link>
+        Already have an account? <AppLink to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Log in</AppLink>
       </p>
     </AuthLayout>
   )

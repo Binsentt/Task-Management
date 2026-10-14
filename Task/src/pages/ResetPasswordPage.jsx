@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Eye, EyeOff, LoaderCircle } from 'lucide-react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import AppLink from '../components/AppLink.jsx'
 import AuthLayout from '../components/AuthLayout.jsx'
 import { getPasswordStrength, validateSignupField } from '../auth/validation.js'
 import * as authApi from '../api/authApi.js'
@@ -88,7 +89,7 @@ function ResetPasswordPage() {
           {submitting ? <><LoaderCircle size={17} className="animate-spin" aria-hidden="true" />Saving password...</> : 'Save new password'}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-600">Remembered your password? <Link to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Log in</Link></p>
+      <p className="mt-6 text-center text-sm text-slate-600">Remembered your password? <AppLink to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Log in</AppLink></p>
     </AuthLayout>
   )
 }

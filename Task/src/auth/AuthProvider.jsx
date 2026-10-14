@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as authApi from '../api/authApi.js';
 
 const AuthContext = createContext(null);
@@ -6,18 +6,28 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [status, setStatus] = useState('loading');
+    const sessionRequestRef = useRef(null);
 
     async function refreshSession() {
-        try {
-            const response = await authApi.me();
-            setUser(response.data.data.user);
-            setStatus('authenticated');
-            return response.data.data.user;
-        } catch (error) {
-            setUser(null);
-            setStatus(error.response?.status === 401 ? 'anonymous' : 'error');
-            return null;
-        }
+        if (sessionRequestRef.current) return sessionRequestRef.current;
+
+        setStatus('loading');
+        const request = (async () => {
+            try {
+                const response = await authApi.me();
+                setUser(response.data.data.user);
+                setStatus('authenticated');
+                return response.data.data.user;
+            } catch (error) {
+                setUser(null);
+                setStatus(error.response?.status === 401 ? 'anonymous' : 'error');
+                return null;
+            } finally {
+                sessionRequestRef.current = null;
+            }
+        })();
+        sessionRequestRef.current = request;
+        return request;
     }
 
     async function login(payload) {
@@ -48,8 +58,7 @@ export function AuthProvider({ children }) {
             setStatus('anonymous');
         };
         window.addEventListener('auth:expired', handleExpired);
-        if (import.meta.env.MODE === 'test') setStatus('anonymous');
-        else refreshSession();
+        refreshSession();
         return () => window.removeEventListener('auth:expired', handleExpired);
     }, []);
 

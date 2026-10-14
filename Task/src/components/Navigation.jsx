@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, CheckSquare2, Menu, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import AppLink from './AppLink.jsx'
 
 const navigationLinks = [
   { label: 'Home', href: '#home' },
@@ -68,13 +68,13 @@ function Navigation() {
 
         <nav aria-label="Primary navigation" className="flex items-center gap-9">
           <LinkList />
-          <Link
+          <AppLink
             to="/signup"
             className="hidden min-h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md md:inline-flex"
           >
             Get Started
             <ArrowRight aria-hidden="true" size={16} />
-          </Link>
+          </AppLink>
         </nav>
 
         <button
@@ -100,14 +100,14 @@ function Navigation() {
           className="border-t border-slate-100 bg-white px-5 py-3 shadow-lg shadow-slate-900/5 sm:px-8 md:hidden"
         >
           <LinkList mobile onNavigate={closeMenu} />
-          <Link
+          <AppLink
             to="/signup"
             onClick={closeMenu}
             className="mt-2 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
           >
             Get Started
             <ArrowRight aria-hidden="true" size={16} />
-          </Link>
+          </AppLink>
         </nav>
       ) : null}
     </header>

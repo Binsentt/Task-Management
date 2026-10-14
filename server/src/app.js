@@ -16,7 +16,14 @@ const app = express();
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
 
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            process.env.CLIENT_URL,
+            ...(process.env.CORS_ORIGINS || '').split(',')
+        ].map((value) => value?.trim()).filter(Boolean);
+
+        callback(null, !origin || allowedOrigins.includes(origin));
+    },
     credentials: true // required so the browser sends the auth cookie
 }));
 app.use(express.json({ limit: '100kb' }));

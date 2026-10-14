@@ -1,18 +1,18 @@
 import { ArrowLeft, Check, CheckSquare2, Circle, Clock3, ListTodo } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import AppLink from './AppLink.jsx'
 
 function TaskArtwork() {
   return (
-    <aside className="relative hidden overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-600 via-indigo-600 to-blue-700 p-10 text-white lg:flex lg:min-h-[620px] lg:flex-col lg:justify-between">
+    <aside className="relative hidden overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-600 via-indigo-600 to-blue-700 p-6 text-white md:flex md:min-h-[540px] md:flex-col md:justify-between lg:min-h-[620px] lg:p-10">
       <div className="absolute -right-20 -top-20 size-72 rounded-full border border-white/10" />
       <div className="absolute -bottom-28 -left-24 size-80 rounded-full border border-white/10" />
       <div className="relative">
-        <Link to="/" className="inline-flex items-center gap-3 text-sm font-semibold text-white">
+        <AppLink to="/" className="inline-flex items-center gap-3 text-sm font-semibold text-white">
           <span className="flex size-10 items-center justify-center rounded-xl bg-white/15">
             <CheckSquare2 size={21} aria-hidden="true" />
           </span>
           Task Management
-        </Link>
+        </AppLink>
         <h2 className="mt-16 max-w-md text-4xl font-semibold leading-tight tracking-tight">
           A little more focus, every day.
         </h2>
@@ -58,13 +58,13 @@ function TaskArtwork() {
 
 export default function AuthLayout({ children, backTo = '/', backLabel = 'Back to home' }) {
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-8 sm:py-10">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]">
-        <section className="mx-auto w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white px-6 py-8 shadow-xl shadow-slate-900/[0.04] sm:px-10 sm:py-10">
-          <Link to={backTo} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-indigo-700">
+    <main className="min-h-screen bg-slate-50 px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className="mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl items-center gap-5 md:grid-cols-[minmax(0,1fr)_minmax(15rem,0.78fr)] md:gap-5 lg:min-h-[calc(100vh-5rem)] lg:grid-cols-[minmax(0,1fr)_minmax(25rem,0.95fr)] lg:gap-8">
+        <section className="mx-auto w-full max-w-lg rounded-3xl border border-slate-200/80 bg-white px-5 py-7 shadow-xl shadow-slate-900/[0.04] sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+          <AppLink to={backTo} className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-indigo-700">
             <ArrowLeft size={16} aria-hidden="true" />
             {backLabel}
-          </Link>
+          </AppLink>
           {children}
         </section>
         <TaskArtwork />

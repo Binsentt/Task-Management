@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LoaderCircle, Mail } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import AppLink from '../components/AppLink.jsx'
 import AuthLayout from '../components/AuthLayout.jsx'
 import * as authApi from '../api/authApi.js'
 import { normalizeApiError } from '../api/client.js'
@@ -52,7 +52,7 @@ function ForgotPasswordPage() {
           {submitting ? <><LoaderCircle size={17} className="animate-spin" aria-hidden="true" />Sending request...</> : <><Mail size={16} aria-hidden="true" />Send reset instructions</>}
         </button>
       </form>
-      <p className="mt-7 text-center text-sm text-slate-600"><Link to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Back to log in</Link></p>
+      <p className="mt-7 text-center text-sm text-slate-600"><AppLink to="/login" className="font-semibold text-indigo-700 hover:text-indigo-800">Back to log in</AppLink></p>
     </AuthLayout>
   )
 }
