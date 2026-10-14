@@ -3,6 +3,7 @@ import User from '../modules/user/user.model.js';
 import { heartbeat, getPresence, sendPing, respondToPing, expirePings } from '../modules/presence/presence.service.js';
 import { pingSchema, pingResponseSchema } from '../modules/presence/presence.validation.js';
 import { COOKIE_NAME, verifyToken } from '../utils/jwt.js';
+import { isClientOriginAllowed } from '../config/clientOrigins.js';
 import { onRealtimeEvent } from './events.js';
 
 function getToken(request) {
@@ -51,6 +52,8 @@ export function attachRealtime(server) {
     server.on('upgrade', async (request, socket, head) => {
         const url = new URL(request.url, 'http://localhost');
         if (url.pathname !== '/ws') return rejectUpgrade(socket, '404 Not Found');
+        const origin = request.headers.origin;
+        if (origin && !isClientOriginAllowed(origin)) return rejectUpgrade(socket, '403 Forbidden');
         const user = await authenticate(request);
         if (!user || !user.organization) return rejectUpgrade(socket, '401 Unauthorized');
         websocketServer.handleUpgrade(request, socket, head, (clientSocket) => {

@@ -1,6 +1,8 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import mongoose from 'mongoose';
+import { isClientOriginAllowed } from './config/clientOrigins.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import historyRoutes from './modules/history/history.routes.js';
 import organizationRoutes from './modules/organization/organization.routes.js';
@@ -17,12 +19,7 @@ if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PRO
 
 app.use(cors({
     origin: (origin, callback) => {
-        const allowedOrigins = [
-            process.env.CLIENT_URL,
-            ...(process.env.CORS_ORIGINS || '').split(',')
-        ].map((value) => value?.trim()).filter(Boolean);
-
-        callback(null, !origin || allowedOrigins.includes(origin));
+        callback(null, !origin || isClientOriginAllowed(origin));
     },
     credentials: true // required so the browser sends the auth cookie
 }));
@@ -30,7 +27,13 @@ app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 200, data: { uptime: process.uptime() }, message: 'OK' });
+    const ready = mongoose.connection.readyState === 1;
+    const status = ready ? 200 : 503;
+    res.status(status).json({
+        status,
+        data: { uptime: process.uptime() },
+        message: ready ? 'OK' : 'Database unavailable',
+    });
 });
 
 app.use('/api/auth', authRoutes);
