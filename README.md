@@ -118,45 +118,39 @@ Task/     React + Vite frontend and landing page
 server/   Express backend scaffold
 ```
 
-## Vercel
+## Railway production deployment
 
-The frontend deployment root is `Task/`. In the Vercel project settings, set
-the Root Directory to `Task`, Framework Preset to Vite, Install Command to
-`npm install`, Build Command to `npm run build`, and Output Directory to
-`dist`. The frontend also includes a `vercel.json` with the Vite build and
-output settings plus an SPA rewrite so client-side routes load on refresh.
+The production project is `task-management-production` and contains two
+services:
 
-The Express API is a separate service; deploying this Vite project does not
-deploy `server/`. The production Railway service URL is
-`https://task-management-api-production-4d64.up.railway.app`. Set these Vercel
-**Production** environment variables before rebuilding:
+- `task-management-api`: repository root, Express REST API and authenticated
+  WebSocket endpoint.
+- `task-management-frontend`: root directory `Task`, Vite build served by
+  `Task/server.js` with SPA fallback.
 
-- `VITE_API_URL=https://task-management-api-production-4d64.up.railway.app/api`
-- `VITE_WS_URL=wss://task-management-api-production-4d64.up.railway.app/ws`
+The current public URLs are:
 
-Do not use localhost values in the production Vercel environment. Vite embeds
-these values in the frontend build, so changing them requires a new Vercel
-production build.
+- API: `https://task-management-api-production-f792.up.railway.app`
+- Frontend: `https://task-management-frontend-production-1e34.up.railway.app`
 
-Configure the backend host separately:
+The frontend is built with:
 
-- Set `MONGODB_URI` to the existing MongoDB Atlas connection string and
-  `JWT_SECRET` to a private secret of at least 32 characters. Do not put either
-  value in source control. Allow the backend host to reach the MongoDB Atlas
-  cluster in Atlas Network Access.
-- Set `NODE_ENV=production` and
-  `CLIENT_URL=https://task-managements-system-project.vercel.app`.
-  Optionally list other exact allowed frontend origins in comma-separated
-  `CORS_ORIGINS`. Do not use wildcard origins with credentialed CORS.
-- Set `COOKIE_SAMESITE=none` because the Vercel frontend and Railway API use
-  different sites. Auth cookies are HttpOnly and Secure in production. Some
-  browsers may still block cross-site cookies; if sessions fail, use a shared
-  custom site domain for the frontend and API.
-- Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and
-  `SMTP_FROM` for password-reset email. Verify actual delivery before claiming
-  the reset-email flow is production-ready.
+- `VITE_API_URL=https://task-management-api-production-f792.up.railway.app/api`
+- `VITE_WS_URL=wss://task-management-api-production-f792.up.railway.app/ws`
+- `VITE_APP_ENV=production`
 
-After setting the Railway variables, redeploy the Railway service and confirm
-`/api/health` reports ready. Then set the Vercel Production variables above,
-redeploy the frontend, and verify login, signup, session restoration, and a
-direct refresh on a client-side route.
+Backend-only variables are managed in Railway. Keep `MONGODB_URI` and
+`JWT_SECRET` private, set `NODE_ENV=production`, `COOKIE_SAMESITE=none`,
+`CLIENT_URL` and `CORS_ORIGINS` to the exact frontend origin, and never use a
+wildcard origin with credentialed requests. The backend intentionally runs one
+replica because its current WebSocket connection registry is process-local.
+
+MongoDB is hosted by Atlas. The health check is:
+
+```bash
+curl https://task-management-api-production-f792.up.railway.app/api/health
+```
+
+Password-reset email is not enabled in this deployment because SMTP variables
+are unset. The API reports the missing SMTP configuration instead of claiming
+that an email was delivered.

@@ -33,16 +33,17 @@ secret. Tests disable SMTP to prevent sending real messages.
 
 ## Railway production settings
 
-Select project **task-management-production**, environment **production**, service
-**task-management-api** in the Railway dashboard.
+Select project **task-management-production**, environment **production**, and
+service **task-management-api** in the Railway dashboard. The frontend is a
+separate **task-management-frontend** service rooted at `Task`.
 
 1. In **Variables**, set `MONGODB_URI` using the existing Atlas driver URI and set
    `JWT_SECRET` to the existing strong private secret, at least 32 characters.
    Enter them directly in Railway's secret controls; do not put values in chat,
    source control, logs, or frontend variables.
-2. Verify `NODE_ENV=production`,
-   `CLIENT_URL=https://task-managements-system-project.vercel.app`, and
-   `COOKIE_SAMESITE=none`. Production cookies are HttpOnly and Secure.
+2. Verify `NODE_ENV=production`, `COOKIE_SAMESITE=none`, and that `CLIENT_URL`
+   and `CORS_ORIGINS` exactly match the public frontend origin. Production
+   cookies are HttpOnly and Secure.
 3. For deployment from the repository root, use the root `railway.json`:
    `npm run start --workspace=server`, health path `/api/health`, timeout 300 seconds.
    If the service uses `server/` as its root, use `npm start` and configure that
@@ -50,10 +51,10 @@ Select project **task-management-production**, environment **production**, servi
 4. Railway assigns `PORT`; the backend validates it and listens on `0.0.0.0`.
    Initial database selection is bounded at 10 seconds. Health is 200 only while
    Mongoose is connected and 503 while a running server has lost its database.
-5. Wait for explicit deployment approval before applying/deploying the staged
-   settings or code. A redeploy of an old build does not include uncommitted local code.
-6. After deployment, inspect safe runtime diagnostics and check the public
+5. After deployment, inspect safe runtime diagnostics and check the public
    `/api/health` response. A timed-out request is not proof of a healthy service.
+6. Keep the backend at one replica until the WebSocket registry uses shared
+   state such as Redis.
 
 ## Atlas checks if connectivity fails
 
@@ -69,6 +70,6 @@ specific addresses or approved private/static networking; do not broaden the
 allowlist unnecessarily. Diagnose DNS, TLS, and authentication separately. A
 read-only MongoDB `ping` verifies connectivity without creating data or indexes.
 
-Railway secret writes were denied by automatic approval review in this chat. Use
-the dashboard for those values until that access/approval boundary is resolved.
-No production deployment is authorized in the current request.
+Password-reset email is disabled until `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASSWORD`, and `SMTP_FROM` are configured. Do not claim reset email
+delivery while those variables are empty.
