@@ -26,7 +26,7 @@ function dashboardPath(user) {
 }
 
 function AuthPage({ children }) {
-  const { user, status, refreshSession } = useAuth()
+  const { user, status, sessionError, refreshSession } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') {
@@ -36,7 +36,7 @@ function AuthPage({ children }) {
     return (
       <PageMessage
         title="We couldn't check your session"
-        detail="Check your connection and try again."
+        detail={sessionError || 'Check your connection and try again.'}
         action={refreshSession}
       />
     )
@@ -46,7 +46,7 @@ function AuthPage({ children }) {
 }
 
 function ProtectedDashboard({ scope }) {
-  const { user, status, refreshSession } = useAuth()
+  const { user, status, sessionError, refreshSession } = useAuth()
   const location = useLocation()
 
   if (status === 'loading') return <PageMessage title="Restoring your session..." />
@@ -54,7 +54,7 @@ function ProtectedDashboard({ scope }) {
     return (
       <PageMessage
         title="We couldn't restore your session"
-        detail="Check your connection and try again."
+        detail={sessionError || 'Check your connection and try again.'}
         action={refreshSession}
       />
     )

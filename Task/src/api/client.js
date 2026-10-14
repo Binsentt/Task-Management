@@ -8,6 +8,17 @@ export const apiClient = axios.create({
     timeout: 10000
 });
 
+apiClient.interceptors.request.use((config) => {
+    if (!config.baseURL) {
+        const error = new Error(
+            'The API is not configured for this deployment. Set VITE_API_URL and rebuild the frontend.',
+        );
+        error.code = 'API_NOT_CONFIGURED';
+        return Promise.reject(error);
+    }
+    return config;
+});
+
 export function normalizeApiError(error) {
     const response = error.response;
     return {

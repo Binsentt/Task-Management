@@ -1,15 +1,21 @@
-function requireUrl(name) {
-    const testDefaults = {
-        VITE_API_URL: 'http://localhost:5000/api',
-        VITE_WS_URL: 'ws://localhost:5000/ws'
-    };
-    const value = import.meta.env[name] || (import.meta.env.MODE === 'test' ? testDefaults[name] : undefined);
-    if (!value) throw new Error(`Missing frontend environment variable: ${name}`);
-    return value.replace(/\/$/, '');
+const testDefaults = {
+    VITE_API_URL: 'http://localhost:5000/api',
+    VITE_WS_URL: 'ws://localhost:5000/ws',
+};
+
+function resolveUrl(name, environment) {
+    const value = environment[name]
+        || (environment.MODE === 'test' ? testDefaults[name] : undefined);
+    const normalized = typeof value === 'string' ? value.trim().replace(/\/$/, '') : '';
+    return normalized || null;
 }
 
-export const env = Object.freeze({
-    apiUrl: requireUrl('VITE_API_URL'),
-    wsUrl: requireUrl('VITE_WS_URL'),
-    appEnv: import.meta.env.VITE_APP_ENV || import.meta.env.MODE || 'development'
-});
+export function resolveFrontendEnv(environment) {
+    return Object.freeze({
+        apiUrl: resolveUrl('VITE_API_URL', environment),
+        wsUrl: resolveUrl('VITE_WS_URL', environment),
+        appEnv: environment.VITE_APP_ENV || environment.MODE || 'development',
+    });
+}
+
+export const env = resolveFrontendEnv(import.meta.env);

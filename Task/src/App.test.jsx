@@ -39,6 +39,19 @@ describe('landing page', () => {
     ).toBe(true)
   })
 
+  it('shows a useful retry state when the API is not configured', async () => {
+    window.history.replaceState({}, '', '/login')
+    const error = new Error('API is not configured')
+    error.code = 'API_NOT_CONFIGURED'
+    authApi.me.mockRejectedValueOnce(error)
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: "We couldn't check your session" })).toBeTruthy()
+    expect(screen.getByText('This deployment is missing VITE_API_URL. Sign-in and data features are unavailable until it is configured and rebuilt.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  })
+
   it('keeps every in-page navigation link pointed at an existing section', () => {
     render(<App />)
 
