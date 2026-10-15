@@ -6,20 +6,10 @@ import SignupPage from './pages/SignupPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
 import DashboardOverviewPage from './pages/DashboardOverviewPage.jsx'
 import DashboardTasksPage from './pages/DashboardTasksPage.jsx'
-
-function DashboardCalendarPage() {
-  return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.02] sm:p-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Calendar</h2>
-        <p className="mt-2 text-sm text-slate-500">Your upcoming schedule and task milestones.</p>
-      </div>
-    </main>
-  )
-}
+import DashboardCalendarPage from './pages/DashboardCalendarPage.jsx'
+import DashboardReportPage from './pages/DashboardReportPage.jsx'
 
 function dashboardPath(user) {
   return user?.organization ? '/organization' : '/dashboard'
@@ -100,10 +90,16 @@ function AppRoutes() {
           <Route index element={<DashboardOverviewPage />} />
           <Route path="tasks" element={<DashboardTasksPage />} />
           <Route path="calendar" element={<DashboardCalendarPage />} />
+          <Route path="report" element={<DashboardReportPage />} />
         </Route>
       </Route>
       <Route element={<ProtectedDashboard scope="organization" />}>
-        <Route path="/organization" element={<DashboardPage scope="organization" />} />
+        <Route path="/organization" element={<DashboardLayout scope="organization" />}>
+          <Route index element={<DashboardOverviewPage />} />
+          <Route path="tasks" element={<DashboardTasksPage />} />
+          <Route path="calendar" element={<DashboardCalendarPage />} />
+          <Route path="report" element={<DashboardReportPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

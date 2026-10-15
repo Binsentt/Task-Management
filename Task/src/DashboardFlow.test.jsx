@@ -91,9 +91,9 @@ describe('protected dashboard routes and shared shell', () => {
     window.history.replaceState({}, '', '/organization')
     authenticate(organizationUser)
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Welcome, Org Member' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
     expect(window.location.pathname).toBe('/organization')
-    expect(screen.queryByRole('navigation', { name: 'Dashboard navigation' })).toBeNull()
+    expect(screen.getByRole('navigation', { name: 'Dashboard navigation' })).toBeTruthy()
 
     cleanup()
     window.history.replaceState({}, '', '/organization')
@@ -106,7 +106,7 @@ describe('protected dashboard routes and shared shell', () => {
     window.history.replaceState({}, '', '/dashboard')
     authenticate(organizationUser)
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Welcome, Org Member' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
     expect(window.location.pathname).toBe('/organization')
   })
 
@@ -747,7 +747,7 @@ describe('organization dashboard task management', () => {
   }
 
   beforeEach(() => {
-    window.history.replaceState({}, '', '/organization')
+    window.history.replaceState({}, '', '/organization/tasks')
     authenticate(organizationUser)
     taskApi.listTasks.mockResolvedValue(taskPage([sharedTask]))
     taskApi.getOrganization.mockResolvedValue({ data: { data: { name: 'Example Company' } } })
@@ -759,7 +759,7 @@ describe('organization dashboard task management', () => {
     taskApi.createTask.mockResolvedValue({ data: { data: createdTask } })
     render(<App />)
 
-    await user.click(await screen.findByRole('button', { name: 'New task' }))
+    await user.click(await screen.findByRole('button', { name: 'New Task' }))
     const dialog = await screen.findByRole('dialog', { name: 'Create task' })
     await user.type(within(dialog).getByLabelText('Task title'), 'Plan the launch')
     await user.type(within(dialog).getByLabelText('Description'), 'Assign the rollout owners.')
@@ -805,10 +805,10 @@ describe('organization dashboard task management', () => {
     taskApi.updateTask.mockResolvedValue({ data: { data: completedTask } })
     render(<App />)
 
-    await user.click(await screen.findByRole('button', { name: 'Mark task Review the launch plan complete' }))
+    await user.click(await screen.findByRole('button', { name: 'Mark Review the launch plan complete' }))
 
     expect(taskApi.updateTask).toHaveBeenCalledWith(sharedTask._id, { status: 'DONE' })
-    expect(await screen.findByText('1 total · 1 completed')).toBeTruthy()
+    expect(await screen.findByText('DONE')).toBeTruthy()
   })
 
   it('deletes an organization task only after confirmation and API success', async () => {

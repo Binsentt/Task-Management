@@ -37,6 +37,11 @@ Select project **task-management-production**, environment **production**, and
 service **task-management-api** in the Railway dashboard. The frontend is a
 separate **task-management-frontend** service rooted at `Task`.
 
+The frontend service should set `API_ORIGIN` to the public backend origin and
+use `Task/railway.json`. Browser requests then use the same-origin `/api` proxy;
+the frontend health path is `/health`. `VITE_API_URL` is accepted as a runtime
+fallback when `API_ORIGIN` is absent.
+
 1. In **Variables**, set `MONGODB_URI` using the existing Atlas driver URI and set
    `JWT_SECRET` to the existing strong private secret, at least 32 characters.
    Enter them directly in Railway's secret controls; do not put values in chat,

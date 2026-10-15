@@ -18,18 +18,19 @@ describe('frontend environment configuration', () => {
         });
     });
 
-    it('does not throw during startup when production API URLs are missing', () => {
+    it('uses the same-origin proxy in production', () => {
         expect(() => resolveFrontendEnv({ MODE: 'production' })).not.toThrow();
         expect(resolveFrontendEnv({ MODE: 'production' })).toMatchObject({
-            apiUrl: null,
-            wsUrl: null,
+            apiUrl: '/api',
+            wsUrl: '/ws',
             appEnv: 'production',
         });
     });
 
-    it('normalizes configured API and WebSocket URLs', () => {
+    it('supports direct API access when explicitly requested', () => {
         expect(resolveFrontendEnv({
             MODE: 'production',
+            VITE_DIRECT_API: 'true',
             VITE_API_URL: 'https://api.example.com/api/',
             VITE_WS_URL: 'wss://api.example.com/ws/',
         })).toMatchObject({

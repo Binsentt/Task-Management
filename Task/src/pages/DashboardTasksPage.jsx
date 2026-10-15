@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useLocation, useOutletContext } from 'react-router-dom'
-import { CalendarClock, Pencil, Plus } from 'lucide-react'
+import { CalendarClock, Check, Pencil, Plus, Trash2 } from 'lucide-react'
+import { normalizeApiError } from '../api/client.js'
 import { deadlineToLocalFields } from '../dashboard/taskDates.js'
 
 function deadlineLabel(value) {
@@ -19,18 +21,35 @@ function deadlineLabel(value) {
 function DashboardTasksPage() {
   const location = useLocation()
   const query = new URLSearchParams(location.search).get('q')?.trim() ?? ''
-  const { tasks = [], loading, error, refreshTasks, openNewTask, openTask } = useOutletContext()
+  const { tasks = [], loading, error, refreshTasks, openNewTask, openTask, updateTask, deleteTask, scope } = useOutletContext()
+  const [busyIds, setBusyIds] = useState(() => new Set())
+  const [taskError, setTaskError] = useState('')
   const normalizedQuery = query.toLocaleLowerCase()
   const visibleTasks = tasks.filter((task) =>
     `${task.title ?? ''} ${task.content ?? ''}`.toLocaleLowerCase().includes(normalizedQuery),
   )
+
+  async function changeTask(task, action) {
+    if (busyIds.has(task._id)) return
+    if (action === 'delete' && !window.confirm(`Delete “${task.title}”? This cannot be undone.`)) return
+    setBusyIds((current) => new Set(current).add(task._id))
+    setTaskError('')
+    try {
+      if (action === 'delete') await deleteTask(task._id)
+      else await updateTask(task._id, { status: task.status === 'DONE' ? 'TO_DO' : 'DONE' })
+    } catch (requestError) {
+      setTaskError(normalizeApiError(requestError).message)
+    } finally {
+      setBusyIds((current) => { const next = new Set(current); next.delete(task._id); return next })
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm text-slate-500">
-            {query ? `Showing results for “${query}”.` : 'Track and manage your personal task list.'}
+            {query ? `Showing results for “${query}”.` : `Track and manage your ${scope === 'organization' ? 'organization' : 'personal'} task list.`}
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">Your tasks</h2>
         </div>
@@ -61,9 +80,10 @@ function DashboardTasksPage() {
           </button>
         </div>
       ) : null}
+      {taskError ? <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-800">{taskError}</p> : null}
       {!loading && !error ? (
         visibleTasks.length ? (
-          <ul aria-label="Personal tasks" className="mt-6 space-y-3">
+          <ul aria-label={scope === 'organization' ? 'Organization tasks' : 'Personal tasks'} className="mt-6 space-y-3">
             {visibleTasks.map((task) => {
               const due = deadlineLabel(task.deadline)
               return (
@@ -92,6 +112,8 @@ function DashboardTasksPage() {
                         </p>
                       ) : null}
                     </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => changeTask(task, 'toggle')} disabled={busyIds.has(task._id)} aria-label={`${task.status === 'DONE' ? 'Reopen' : 'Mark'} ${task.title} ${task.status === 'DONE' ? '' : 'complete'}`.trim()} className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-slate-200 px-3 text-sm font-semibold disabled:opacity-50"><Check size={15} /> {task.status === 'DONE' ? 'Reopen' : 'Complete'}</button>
                     <button
                       type="button"
                       onClick={() => openTask(task)}
@@ -101,6 +123,8 @@ function DashboardTasksPage() {
                       <Pencil size={15} aria-hidden="true" />
                       Edit
                     </button>
+                    <button type="button" onClick={() => changeTask(task, 'delete')} disabled={busyIds.has(task._id)} aria-label={`Delete ${task.title}`} className="flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-rose-700 disabled:opacity-50"><Trash2 size={16} /></button>
+                    </div>
                   </div>
                 </li>
               )

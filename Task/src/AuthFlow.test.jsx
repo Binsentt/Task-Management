@@ -137,8 +137,8 @@ describe('authentication routes', () => {
     {
       scope: 'organization',
       user: { _id: 'organization-user', full_name: 'Organization Member', organization: 'server-org', org_role: 'ADMIN' },
-      expectedWorkspace: 'Example Company',
-      expectedHeading: 'Welcome, Organization Member',
+      expectedWorkspace: 'Organization workspace',
+      expectedHeading: 'Overview',
       expectedPath: '/organization',
       expectedRole: 'ADMIN',
     },
@@ -158,7 +158,7 @@ describe('authentication routes', () => {
     expect(await screen.findByRole('heading', { name: expectedHeading })).toBeTruthy()
     expect((await screen.findAllByText(expectedWorkspace)).length).toBeGreaterThan(0)
     expect(window.location.pathname).toBe(expectedPath)
-    if (expectedRole) expect(screen.getByText(expectedRole)).toBeTruthy()
+    if (expectedRole) expect(screen.getByRole('navigation', { name: 'Dashboard navigation' })).toBeTruthy()
     expect(authApi.me).toHaveBeenCalledTimes(1)
   })
 
@@ -365,9 +365,9 @@ describe('authentication routes', () => {
     await user.type(screen.getByLabelText(/organization name/i), 'Example Company')
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
-    expect(await screen.findByRole('heading', { name: /welcome, zoë example/i })).toBeTruthy()
-    expect(await screen.findByText('Example Company')).toBeTruthy()
-    expect(screen.getByText('ADMIN')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
+    expect((await screen.findAllByText('Organization workspace')).length).toBeGreaterThan(0)
+    expect(window.location.pathname).toBe('/organization')
     expect(authApi.register).toHaveBeenCalledWith(expect.objectContaining({
       account_type: 'organization',
       organization_name: 'Example Company',

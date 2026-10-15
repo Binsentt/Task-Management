@@ -133,11 +133,27 @@ The current public URLs are:
 - API: `https://task-management-api-production-f792.up.railway.app`
 - Frontend: `https://task-management-frontend-production-1e34.up.railway.app`
 
-The frontend is built with:
+The Railway frontend uses its own `/api` and `/ws` paths and forwards them to
+the backend. This keeps sign-in cookies on the frontend origin and avoids
+cross-site browser restrictions. Set `API_ORIGIN` on the frontend service to the
+API origin below (without `/api`):
+
+- `API_ORIGIN=https://task-management-api-production-f792.up.railway.app`
+
+The existing `VITE_API_URL` value also works as a runtime fallback for the
+frontend server. For direct API access on a different host, set
+`VITE_DIRECT_API=true` at build time and provide:
 
 - `VITE_API_URL=https://task-management-api-production-f792.up.railway.app/api`
 - `VITE_WS_URL=wss://task-management-api-production-f792.up.railway.app/ws`
 - `VITE_APP_ENV=production`
+
+The frontend service uses `Task/railway.json` for its start command and `/health`
+check. The API service uses the repository root `railway.json` and `/api/health`.
+After deployment, check both health endpoints and open an authenticated page to
+verify that the session cookie and task requests work through `/api`.
+Vercel builds use direct API access; configure `VITE_API_URL` and `VITE_WS_URL`
+in that project if deploying there.
 
 Backend-only variables are managed in Railway. Keep `MONGODB_URI` and
 `JWT_SECRET` private, set `NODE_ENV=production`, `COOKIE_SAMESITE=none`,

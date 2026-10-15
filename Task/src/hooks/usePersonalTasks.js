@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as taskApi from '../api/taskApi.js'
 import { normalizeApiError } from '../api/client.js'
 
-export function usePersonalTasks(userId) {
+export function usePersonalTasks(userId, scope = 'personal') {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -20,14 +20,14 @@ export function usePersonalTasks(userId) {
     setError('')
 
     try {
-      const firstResponse = await taskApi.listTasks('personal', 1, 100)
+      const firstResponse = await taskApi.listTasks(scope, 1, 100)
       if (!isCurrentRequest()) return
 
       const { tasks: firstPageTasks, pages = 1 } = firstResponse.data.data
       const allTasks = [...firstPageTasks]
 
       for (let page = 2; page <= pages; page += 1) {
-        const response = await taskApi.listTasks('personal', page, 100)
+        const response = await taskApi.listTasks(scope, page, 100)
         if (!isCurrentRequest()) return
         allTasks.push(...response.data.data.tasks)
       }
@@ -51,7 +51,7 @@ export function usePersonalTasks(userId) {
     } finally {
       if (isCurrentRequest()) setLoading(false)
     }
-  }, [userId])
+  }, [userId, scope])
 
   useEffect(() => {
     identityRef.current += 1

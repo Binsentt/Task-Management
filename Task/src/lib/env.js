@@ -11,9 +11,10 @@ function resolveUrl(name, environment) {
 }
 
 export function resolveFrontendEnv(environment) {
+    const proxyApi = environment.MODE === 'production' && environment.VITE_DIRECT_API !== 'true';
     return Object.freeze({
-        apiUrl: resolveUrl('VITE_API_URL', environment),
-        wsUrl: resolveUrl('VITE_WS_URL', environment),
+        apiUrl: proxyApi ? '/api' : resolveUrl('VITE_API_URL', environment),
+        wsUrl: proxyApi ? '/ws' : resolveUrl('VITE_WS_URL', environment),
         appEnv: environment.VITE_APP_ENV || environment.MODE || 'development',
     });
 }

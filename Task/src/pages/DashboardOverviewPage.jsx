@@ -210,6 +210,7 @@ function DashboardOverviewPage() {
     openTask,
     updateTask,
     deleteTask,
+    scope,
   } = useOutletContext()
   const now = new Date()
   const overdueCount = tasks.filter((task) => {
@@ -322,7 +323,7 @@ function DashboardOverviewPage() {
           </div>
           {tasks.length === 0 ? (
             <div className="mt-5 rounded-xl bg-slate-50 px-4 py-6 text-center">
-              <h3 className="text-sm font-semibold text-slate-800">No personal tasks yet</h3>
+              <h3 className="text-sm font-semibold text-slate-800">No {scope === 'organization' ? 'organization' : 'personal'} tasks yet</h3>
               <p className="mt-1 text-sm text-slate-500">Create your first task to see it here.</p>
               <p className="mt-1 text-xs text-slate-400">No tasks due today.</p>
               <button

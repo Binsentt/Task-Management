@@ -4,6 +4,7 @@ import {
   CheckSquare2,
   LayoutDashboard,
   ListTodo,
+  FileText,
   LogOut,
   Menu,
   Search,
@@ -15,10 +16,11 @@ import { normalizeApiError } from '../api/client.js'
 import { usePersonalTasks } from '../hooks/usePersonalTasks.js'
 import PersonalTaskDialog from './PersonalTaskDialog.jsx'
 
-const dashboardLinks = [
-  { to: '/dashboard', label: 'Overview', Icon: LayoutDashboard, end: true },
-  { to: '/dashboard/tasks', label: 'My Tasks', Icon: ListTodo },
-  { to: '/dashboard/calendar', label: 'Calendar', Icon: CalendarDays },
+const dashboardLinks = (base) => [
+  { to: base, label: 'Overview', Icon: LayoutDashboard, end: true },
+  { to: `${base}/tasks`, label: 'My Tasks', Icon: ListTodo },
+  { to: `${base}/calendar`, label: 'Calendar', Icon: CalendarDays },
+  { to: `${base}/report`, label: 'Report', Icon: FileText },
 ]
 
 function userInitials(user) {
@@ -28,10 +30,10 @@ function userInitials(user) {
   return (words[0] || '').slice(0, 2).toUpperCase()
 }
 
-function DashboardNavigation({ ariaLabel, onNavigate }) {
+function DashboardNavigation({ ariaLabel, onNavigate, base }) {
   return (
     <nav aria-label={ariaLabel} className="flex flex-col gap-1">
-      {dashboardLinks.map(({ to, label, Icon, end }) => (
+      {dashboardLinks(base).map(({ to, label, Icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -53,12 +55,15 @@ function DashboardNavigation({ ariaLabel, onNavigate }) {
   )
 }
 
-function DashboardLayout() {
+function DashboardLayout({ scope = 'personal' }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const organizationScope = scope === 'organization'
+  const base = organizationScope ? '/organization' : '/dashboard'
+  const workspaceLabel = organizationScope ? 'Organization workspace' : 'Personal workspace'
   const { tasks, loading, error, refreshTasks, createTask, updateTask, deleteTask } =
-    usePersonalTasks(user?._id)
+    usePersonalTasks(user?._id, scope)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [logoutError, setLogoutError] = useState('')
@@ -68,10 +73,12 @@ function DashboardLayout() {
   const menuButtonRef = useRef(null)
   const wasMobileOpenRef = useRef(false)
 
-  const pageTitle = location.pathname === '/dashboard/tasks'
+  const pageTitle = location.pathname === `${base}/tasks`
     ? 'My Tasks'
-    : location.pathname === '/dashboard/calendar'
+    : location.pathname === `${base}/calendar`
       ? 'Calendar'
+      : location.pathname === `${base}/report`
+        ? 'Report'
       : 'Overview'
   const displayName = user?.full_name || user?.username || 'User'
   const initials = userInitials(user)
@@ -137,7 +144,7 @@ function DashboardLayout() {
 
   function submitSearch(event) {
     event.preventDefault()
-    navigate(`/dashboard/tasks?q=${encodeURIComponent(searchQuery.trim())}`)
+    navigate(`${base}/tasks?q=${encodeURIComponent(searchQuery.trim())}`)
   }
 
   function openNewTask() {
@@ -152,7 +159,7 @@ function DashboardLayout() {
 
   async function saveTask(payload, taskId) {
     if (taskId) return updateTask(taskId, payload)
-    return createTask(payload)
+    return createTask({ ...payload, is_org_task: organizationScope })
   }
 
   function closeTaskDialog() {
@@ -170,6 +177,7 @@ function DashboardLayout() {
     deleteTask,
     openNewTask,
     openTask,
+    scope,
   }
 
   return (
@@ -180,10 +188,10 @@ function DashboardLayout() {
       >
         <Brand />
         <p className="mt-9 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-          Personal workspace
+          {workspaceLabel}
         </p>
         <div className="mt-3">
-          <DashboardNavigation ariaLabel="Dashboard navigation" />
+          <DashboardNavigation ariaLabel="Dashboard navigation" base={base} />
         </div>
         <div className="mt-auto border-t border-slate-100 pt-5">
           <UserSummary displayName={displayName} initials={initials} />
@@ -220,11 +228,12 @@ function DashboardLayout() {
             </button>
           </div>
           <p className="mt-9 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Personal workspace
+            {workspaceLabel}
           </p>
           <div className="mt-3">
             <DashboardNavigation
               ariaLabel="Mobile dashboard navigation"
+              base={base}
               onNavigate={() => setMobileOpen(false)}
             />
           </div>
@@ -251,7 +260,7 @@ function DashboardLayout() {
             </button>
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-lg font-semibold tracking-tight text-slate-950">{pageTitle}</h1>
-              <p className="hidden text-xs text-slate-500 sm:block">Personal workspace</p>
+              <p className="hidden text-xs text-slate-500 sm:block">{workspaceLabel}</p>
             </div>
             <form
               onSubmit={submitSearch}
@@ -293,6 +302,7 @@ function DashboardLayout() {
           task={selectedTask}
           onClose={closeTaskDialog}
           onSave={saveTask}
+          scope={scope}
         />
       ) : null}
     </div>
