@@ -255,6 +255,57 @@ describe('authentication routes', () => {
     expect(await screen.findByText(/username already taken/i)).toBeTruthy()
   }, 10000)
 
+  it('shows backend registration validation errors beside the matching field', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, '', '/signup')
+    authApi.checkAvailability.mockResolvedValue({ data: { data: { available: true } } })
+    authApi.register.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          message: 'Validation failed',
+          errors: [{ field: 'contact_number', message: 'Contact number must be at most 20 digits' }],
+        },
+      },
+    })
+    render(<App />)
+
+    await user.type(await screen.findByLabelText(/full name/i), 'Vincent')
+    await user.type(screen.getByLabelText(/^username$/i), 'vincent275')
+    await user.type(screen.getByLabelText(/^email$/i), 'vincent275@gmail.com')
+    await user.type(screen.getByLabelText(/^password$/i), 'Vincent275!')
+    await user.type(screen.getByLabelText(/re-enter password/i), 'Vincent275!')
+    await user.type(screen.getByLabelText(/contact number/i), '001234567')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByText('Contact number must be at most 20 digits')).toBeTruthy()
+    expect(screen.queryByText('Validation failed')).toBeNull()
+  }, 10000)
+
+  it('omits organization-only fields when registering an individual account', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, '', '/signup')
+    authApi.checkAvailability.mockResolvedValue({ data: { data: { available: true } } })
+    authApi.register.mockResolvedValue({
+      data: { data: { user: { _id: 'personal-user', full_name: 'Vincent', organization: null } } },
+    })
+    taskApi.listTasks.mockResolvedValue({ data: { data: { tasks: [], pages: 1, total: 0 } } })
+    render(<App />)
+
+    await user.type(await screen.findByLabelText(/full name/i), 'Vincent')
+    await user.type(screen.getByLabelText(/^username$/i), 'vincent275')
+    await user.type(screen.getByLabelText(/^email$/i), 'vincent275@gmail.com')
+    await user.type(screen.getByLabelText(/^password$/i), 'Vincent275!')
+    await user.type(screen.getByLabelText(/re-enter password/i), 'Vincent275!')
+    await user.type(screen.getByLabelText(/contact number/i), '001234567')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeTruthy()
+    const payload = authApi.register.mock.calls[0][0]
+    expect(payload.account_type).toBe('individual')
+    expect(Object.hasOwn(payload, 'organization_name')).toBe(false)
+  }, 10000)
+
   it('provides login and forgot-password pages with reciprocal links', async () => {
     const user = userEvent.setup()
     window.history.replaceState({}, '', '/login')

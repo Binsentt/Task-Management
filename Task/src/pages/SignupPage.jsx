@@ -27,6 +27,7 @@ function SignupPage() {
   const [values, setValues] = useState(initialValues)
   const [touched, setTouched] = useState({})
   const [availability, setAvailability] = useState({})
+  const [serverErrors, setServerErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
@@ -74,6 +75,11 @@ function SignupPage() {
     setValues((current) => ({ ...current, [field]: value }))
     setTouched((current) => ({ ...current, [field]: true }))
     setAvailability((current) => ({ ...current, [field]: undefined }))
+    setServerErrors((current) => {
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
     setFormError('')
   }
 
@@ -82,7 +88,9 @@ function SignupPage() {
     const message = field === 'password' && /72 UTF-8 bytes/i.test(validation)
       ? 'Password is too long'
       : validation
-    return touched[field] ? message || (typeof availability[field] === 'string' ? availability[field] : '') : ''
+    return touched[field]
+      ? serverErrors[field] || message || (typeof availability[field] === 'string' ? availability[field] : '')
+      : ''
   }
 
   async function handleSubmit(event) {
@@ -104,24 +112,57 @@ function SignupPage() {
 
     setSubmitting(true)
     setFormError('')
+    setServerErrors({})
     try {
+      const { organization_name, ...individualValues } = values
       const user = await register({
-        ...values,
+        ...individualValues,
         username: values.username.trim().toLowerCase(),
         email: values.email.trim().toLowerCase(),
         full_name: values.full_name.trim(),
-        organization_name: values.organization_name.trim(),
+        ...(values.account_type === 'organization'
+          ? { organization_name: organization_name.trim() }
+          : {}),
       })
       navigate(destinationFor(user), { replace: true })
     } catch (error) {
-      const { message } = normalizeApiError(error)
+      const { message, errors = [] } = normalizeApiError(error)
+      const fieldNames = [
+        'full_name',
+        'username',
+        'email',
+        'password',
+        'confirmPassword',
+        'contact_number',
+        'organization_name',
+      ]
+      const nextServerErrors = {}
+      const unassignedErrors = []
+      for (const validationError of errors) {
+        if (fieldNames.includes(validationError.field)) {
+          nextServerErrors[validationError.field] = nextServerErrors[validationError.field]
+            ? `${nextServerErrors[validationError.field]} ${validationError.message}`
+            : validationError.message
+        } else if (validationError.message) {
+          unassignedErrors.push(validationError.message)
+        }
+      }
+      if (Object.keys(nextServerErrors).length) {
+        setServerErrors(nextServerErrors)
+        setTouched((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(nextServerErrors).map((field) => [field, true])),
+        }))
+      }
       if (/username/i.test(message) && /taken|already|exist/i.test(message)) {
         setAvailability((current) => ({ ...current, username: message }))
         setTouched((current) => ({ ...current, username: true }))
       } else if (/email/i.test(message) && /taken|already|registered|exist/i.test(message)) {
         setAvailability((current) => ({ ...current, email: message }))
         setTouched((current) => ({ ...current, email: true }))
-      } else {
+      } else if (unassignedErrors.length) {
+        setFormError(unassignedErrors.join(' '))
+      } else if (!Object.keys(nextServerErrors).length) {
         setFormError(message)
       }
     } finally {
